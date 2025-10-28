@@ -17,6 +17,7 @@ import SystemSettingsPage from './components/SystemSettingsPage'
 import AdminRolesPage from './components/AdminRolesPage'
 import ProfileSettingsPage from './components/ProfileSettingsPage'
 import UserDetailPage from './components/UserDetailPage'
+import EmailVerificationPage from './components/EmailVerificationPage'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { RoleProvider } from './contexts/RoleContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -77,6 +78,8 @@ const ContentArea = memo(({ currentRoute, selectedUser, onUserSelect, onBack }) 
         return ProfileSettingsPage
       case '/user-detail':
         return UserDetailPage
+      case '/verify-email':
+        return EmailVerificationPage
       default:
         return null
     }
@@ -133,7 +136,13 @@ const ContentArea = memo(({ currentRoute, selectedUser, onUserSelect, onBack }) 
 })
 
 function App() {
-  const [currentRoute, setCurrentRoute] = useState('/dashboard')
+  const [currentRoute, setCurrentRoute] = useState(() => {
+    // Check if we're on the verification route
+    if (window.location.pathname === '/verify-email') {
+      return '/verify-email'
+    }
+    return '/dashboard'
+  })
   const [selectedUser, setSelectedUser] = useState(null)
 
   // Memoize the route change handler to prevent sidebar re-renders
@@ -152,6 +161,15 @@ function App() {
     setCurrentRoute('/users')
     setSelectedUser(null)
   }, [])
+
+  // Handle email verification route separately (no auth required)
+  if (currentRoute === '/verify-email') {
+    return (
+      <ThemeProvider>
+        <EmailVerificationPage />
+      </ThemeProvider>
+    )
+  }
 
   return (
     <ThemeProvider>

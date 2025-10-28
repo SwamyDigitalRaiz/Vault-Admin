@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, 
@@ -28,18 +28,57 @@ import {
   ChevronRight,
   FileDown,
   FileSpreadsheet,
-  FileText as FileTextIcon
+  FileText as FileTextIcon,
+  RefreshCw
 } from 'lucide-react'
+import apiService from '../services/api'
 
-const UsersTable = ({ onUserSelect }) => {
+const UsersTable = ({ onUserSelect, refreshTrigger }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortField, setSortField] = useState('name')
   const [sortDirection, setSortDirection] = useState('asc')
   const [showFilters, setShowFilters] = useState(false)
+  const [users, setUsers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
-  // Mock data
-  const users = [
+  // Fetch users from API
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      
+      const params = {
+        page: currentPage,
+        limit: 10,
+        ...(searchTerm && { search: searchTerm }),
+        ...(statusFilter !== 'all' && { isActive: statusFilter === 'active' })
+      }
+      
+      const response = await apiService.getUsers(params)
+      
+      if (response.success) {
+        setUsers(response.data.users)
+        setTotalPages(response.data.pagination.pages)
+      } else {
+        setError('Failed to fetch users')
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to fetch users')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [currentPage, searchTerm, statusFilter, refreshTrigger])
+
+  // Mock data for fallback
+  const mockUsers = [
     {
       id: 1,
       name: 'John Doe',
@@ -183,6 +222,17 @@ const UsersTable = ({ onUserSelect }) => {
               <span>Filters</span>
             </motion.button>
 
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={fetchUsers}
+              disabled={isLoading}
+              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </motion.button>
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -294,7 +344,41 @@ const UsersTable = ({ onUserSelect }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedUsers.map((user, index) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan="7" className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center space-y-3">
+                    <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
+                    <span className="text-gray-500 dark:text-gray-400">Loading users...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan="7" className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center space-y-3">
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                    <span className="text-red-500 dark:text-red-400">{error}</span>
+                    <button
+                      onClick={fetchUsers}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center space-y-3">
+                    <User className="w-6 h-6 text-gray-400" />
+                    <span className="text-gray-500 dark:text-gray-400">No users found</span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              users.map((user, index) => (
               <motion.tr
                 key={user.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -314,7 +398,20 @@ const UsersTable = ({ onUserSelect }) => {
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {user.name}
+                        {user.name || 'N/A'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {user.role === 'admin' ? (
+                          <span className="inline-flex items-center">
+                            <Shield className="w-3 h-3 mr-1" />
+                            Admin
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center">
+                            <User className="w-3 h-3 mr-1" />
+                            User
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -328,35 +425,36 @@ const UsersTable = ({ onUserSelect }) => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <Phone className="h-4 w-4 mr-2" />
-                    {user.phone}
+                    {user.phone || 'N/A'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <FolderOpen className="h-4 w-4 mr-1" />
-                    <span className="mr-3">{user.folders}</span>
+                    <span className="mr-3">{user.folders || 0}</span>
                     <FileText className="h-4 w-4 mr-1" />
-                    <span>{user.files}</span>
+                    <span>{user.files || 0}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <Clock className="h-4 w-4 mr-2" />
-                    {user.lastActive}
+                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    user.status === 'active' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                      : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                  }`}>
-                    {user.status === 'active' ? (
-                      <CheckCircle className="h-3 w-3 mr-1" />
+                  <div className="flex items-center">
+                    {user.isActive ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Active
+                      </span>
                     ) : (
-                      <XCircle className="h-3 w-3 mr-1" />
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Inactive
+                      </span>
                     )}
-                    <span className="capitalize">{user.status}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -376,7 +474,8 @@ const UsersTable = ({ onUserSelect }) => {
                   </div>
                 </td>
               </motion.tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </div>

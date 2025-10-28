@@ -126,8 +126,15 @@ class ApiService {
   // User management endpoints
   async getUsers(params = {}) {
     const queryString = new URLSearchParams(params).toString()
-    return this.request(`/users${queryString ? `?${queryString}` : ''}`, {
+    return this.request(`/admin/users${queryString ? `?${queryString}` : ''}`, {
       method: 'GET',
+    })
+  }
+
+  async createAdminUser(userData) {
+    return this.request('/admin/users/create-admin', {
+      method: 'POST',
+      body: JSON.stringify(userData),
     })
   }
 

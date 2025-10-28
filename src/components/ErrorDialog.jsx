@@ -14,19 +14,9 @@ const ErrorDialog = ({
   showCancelButton = false,
   cancelText = "Cancel"
 }) => {
-  console.log('=== ERROR DIALOG RENDER ===')
-  console.log('isOpen:', isOpen)
-  console.log('title:', title)
-  console.log('message:', message)
-  console.log('type:', type)
-  
   if (!isOpen) {
-    console.log('ErrorDialog not open, returning null')
     return null
   }
-
-  console.log('ErrorDialog is open, rendering dialog')
-  console.log('Dialog props:', { isOpen, title, message, type, showCloseButton, confirmText })
 
   const getIcon = () => {
     switch (type) {

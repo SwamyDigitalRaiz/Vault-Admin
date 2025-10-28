@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, flushSync } from 'react'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,9 +12,18 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showErrorDialog, setShowErrorDialog] = useState(false)
-  const [errorDialogData, setErrorDialogData] = useState({})
-  
+  const [errorDialog, setErrorDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'error',
+    confirmText: 'OK',
+    showCancelButton: false,
+    cancelText: 'Cancel',
+    onConfirm: null,
+    onCancel: null
+  })
+
   const { login } = useAuth()
 
   const handleChange = (e) => {
@@ -29,60 +38,54 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
 
   // Handle different types of errors with appropriate dialogs
   const handleError = (errorMessage) => {
-    console.log('Handling login error:', errorMessage)
-    
     // Check for specific error types
     if (errorMessage.includes('Invalid credentials')) {
-      setErrorDialogData({
+      const newDialogState = {
+        isOpen: true,
         title: "Login Failed",
         message: "The email or password you entered is incorrect. Please check your credentials and try again.\n\nIf you've forgotten your password, you can reset it using the 'Forgot password?' link below.",
         type: "error",
         confirmText: "Try Again",
         showCancelButton: true,
         cancelText: "Reset Password",
-        onConfirm: () => setShowErrorDialog(false),
+        onConfirm: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
         onCancel: () => {
-          setShowErrorDialog(false)
+          setErrorDialog(prev => ({ ...prev, isOpen: false }))
           onSwitchToForgotPassword()
         }
+      }
+      
+      flushSync(() => {
+        setErrorDialog(newDialogState)
       })
-      setShowErrorDialog(true)
+      
     } else if (errorMessage.includes('Account is deactivated')) {
-      setErrorDialogData({
+      setErrorDialog({
+        isOpen: true,
         title: "Account Deactivated",
         message: "Your account has been deactivated. Please contact your system administrator for assistance.",
         type: "warning",
-        confirmText: "Contact Support"
+        confirmText: "Contact Support",
+        showCancelButton: false,
+        cancelText: "Cancel",
+        onConfirm: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
+        onCancel: null
       })
-      setShowErrorDialog(true)
     } else if (errorMessage.includes('Email not verified')) {
-      setErrorDialogData({
+      setErrorDialog({
+        isOpen: true,
         title: "Email Not Verified",
         message: "Please check your email and click the verification link before logging in. If you didn't receive the email, you can request a new verification email.",
         type: "info",
         confirmText: "Resend Email",
         showCancelButton: true,
-        cancelText: "Try Again"
+        cancelText: "Try Again",
+        onConfirm: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
+        onCancel: () => setErrorDialog(prev => ({ ...prev, isOpen: false }))
       })
-      setShowErrorDialog(true)
     } else {
       // Generic error - show in form
       setError(errorMessage)
-    }
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-
-    try {
-      await login(formData.email, formData.password)
-      // Login successful - AuthContext will handle the redirect
-    } catch (err) {
-      handleError(err.message || 'Login failed. Please check your credentials.')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -138,7 +141,7 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
           variants={formVariants}
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700"
         >
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -230,10 +233,45 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
 
             {/* Submit Button */}
             <motion.button
-              type="submit"
+              type="button"
               disabled={isLoading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={async (e) => {
+                e.preventDefault()
+                
+                // Basic validation
+                if (!formData.email || !formData.password) {
+                  flushSync(() => {
+                    setErrorDialog({
+                      isOpen: true,
+                      title: "Missing Information",
+                      message: "Please enter both email and password to continue.",
+                      type: "warning",
+                      confirmText: "OK",
+                      showCancelButton: false,
+                      cancelText: "Cancel",
+                      onConfirm: () => setErrorDialog(prev => ({ ...prev, isOpen: false })),
+                      onCancel: null
+                    })
+                  })
+                  return
+                }
+                
+                setIsLoading(true)
+                setError('')
+                
+                try {
+                  await login(formData.email, formData.password)
+                  // Login successful - AuthContext will handle the redirect
+                } catch (err) {
+                  // Fallback alert if dialog doesn't work
+                  alert(`Login Failed: ${err.message || 'Invalid credentials'}`)
+                  handleError(err.message || 'Login failed. Please check your credentials.')
+                } finally {
+                  setIsLoading(false)
+                }
+              }}
               className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
@@ -248,7 +286,7 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
                 </div>
               )}
             </motion.button>
-          </form>
+          </div>
 
           {/* Switch to Register */}
           <div className="mt-6 text-center">
@@ -277,10 +315,33 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
       
       {/* Error Dialog */}
       <ErrorDialog
-        isOpen={showErrorDialog}
-        onClose={() => setShowErrorDialog(false)}
-        {...errorDialogData}
+        isOpen={errorDialog.isOpen}
+        onClose={() => setErrorDialog(prev => ({ ...prev, isOpen: false }))}
+        title={errorDialog.title}
+        message={errorDialog.message}
+        type={errorDialog.type}
+        confirmText={errorDialog.confirmText}
+        showCancelButton={errorDialog.showCancelButton}
+        cancelText={errorDialog.cancelText}
+        onConfirm={errorDialog.onConfirm}
+        onCancel={errorDialog.onCancel}
       />
+      
+      {/* Debug: Show when dialog should be open */}
+      {errorDialog.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: 'red',
+          color: 'white',
+          padding: '10px',
+          zIndex: 9999,
+          borderRadius: '5px'
+        }}>
+          DIALOG SHOULD BE OPEN: {errorDialog.title}
+        </div>
+      )}
     </div>
   )
 }

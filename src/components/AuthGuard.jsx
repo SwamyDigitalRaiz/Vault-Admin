@@ -8,6 +8,7 @@ import SimpleTest from './SimpleTest'
 import MinimalRegistration from './MinimalRegistration'
 import DiagnosticPage from './DiagnosticPage'
 import BasicTest from './BasicTest'
+import EmailVerificationPage from './EmailVerificationPage'
 
 console.log('=== AUTHGUARD MODULE LOADED ===')
 
@@ -40,6 +41,11 @@ const AuthGuard = ({ children }) => {
         </motion.div>
       </div>
     )
+  }
+
+  // Show email verification page if on verification route (no auth required)
+  if (window.location.pathname === '/verify-email') {
+    return <EmailVerificationPage />
   }
 
   // Show authentication pages if not authenticated
