@@ -1,39 +1,20 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import ContactsTable from './ContactsTable'
-import ContactModal from './ContactModal'
+import RecipientsTable from './RecipientsTable'
 import ContactDetailPanel from './ContactDetailPanel'
 
 const RecipientsPage = ({ onRecipientSelect }) => {
-  const [selectedContact, setSelectedContact] = useState(null)
+  const [selectedRecipient, setSelectedRecipient] = useState(null)
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingContact, setEditingContact] = useState(null)
 
-  const handleContactSelect = (contact) => {
-    setSelectedContact(contact)
+  const handleRecipientSelect = (recipient) => {
+    setSelectedRecipient(recipient)
     setIsDetailPanelOpen(true)
   }
 
   const handleCloseDetailPanel = () => {
     setIsDetailPanelOpen(false)
-    setSelectedContact(null)
-  }
-
-  const handleEditContact = (contact) => {
-    setEditingContact(contact)
-    setIsModalOpen(true)
-  }
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setEditingContact(null)
-  }
-
-  const handleSaveContact = (contactData) => {
-    console.log('Contact saved:', contactData)
-    setIsModalOpen(false)
-    setEditingContact(null)
+    setSelectedRecipient(null)
   }
 
 
@@ -93,38 +74,27 @@ const RecipientsPage = ({ onRecipientSelect }) => {
             </div>
           </motion.div>
 
-          {/* Contacts Table */}
+          {/* Recipients Table */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <ContactsTable 
-              onContactSelect={handleContactSelect}
-              onEditContact={handleEditContact}
-              onRecipientSelect={onRecipientSelect}
+            <RecipientsTable 
+              onRecipientSelect={handleRecipientSelect}
             />
           </motion.div>
         </div>
 
-        {/* Contact Detail Panel */}
+        {/* Recipient Detail Panel */}
         <AnimatePresence>
-          {isDetailPanelOpen && selectedContact && (
+          {isDetailPanelOpen && selectedRecipient && (
             <ContactDetailPanel
-              contact={selectedContact}
+              contact={selectedRecipient}
               onClose={handleCloseDetailPanel}
-              onEdit={handleEditContact}
             />
           )}
         </AnimatePresence>
-
-        {/* Add/Edit Contact Modal */}
-        <ContactModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          contact={editingContact}
-          onSave={handleSaveContact}
-        />
       </main>
     </motion.div>
   )

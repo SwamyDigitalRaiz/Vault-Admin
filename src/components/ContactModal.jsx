@@ -87,19 +87,8 @@ const ContactModal = ({ isOpen, onClose, contact, onSave }) => {
     setIsSubmitting(true)
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const contactData = {
-        ...formData,
-        id: contact?.id || Date.now(),
-        createdAt: contact?.createdAt || new Date().toISOString().split('T')[0],
-        createdBy: contact?.createdBy || 'Current User',
-        isValid: true,
-        isDuplicate: false
-      }
-      
-      onSave(contactData)
+      // Pass clean form data to parent (RecipientsPage will handle API call)
+      await onSave(formData)
     } catch (error) {
       console.error('Error saving contact:', error)
     } finally {

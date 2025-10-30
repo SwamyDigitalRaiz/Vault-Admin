@@ -8,8 +8,6 @@ import {
   FileText, 
   Calendar, 
   UserPlus, 
-  Edit, 
-  Trash2,
   FolderOpen,
   FileText as FileIcon,
   Send,
@@ -18,7 +16,7 @@ import {
   XCircle
 } from 'lucide-react'
 
-const ContactDetailPanel = ({ contact, onClose, onEdit }) => {
+const ContactDetailPanel = ({ contact, onClose }) => {
   // Mock data for contact details
   const contactDetails = {
     ...contact,
@@ -287,27 +285,6 @@ const ContactDetailPanel = ({ contact, onClose, onEdit }) => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onEdit(contact)}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-            >
-              <Edit className="h-4 w-4" />
-              <span>Edit Contact</span>
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Delete Contact</span>
-            </motion.button>
-          </div>
         </div>
       </motion.div>
     </>

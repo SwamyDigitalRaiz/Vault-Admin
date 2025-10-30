@@ -165,6 +165,28 @@ class ApiService {
     })
   }
 
+  async getFolders(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/files/folders${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  // Admin-wide lists
+  async getAdminFolders(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/folders${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getAdminFiles(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/files${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
   async getFileById(fileId) {
     return this.request(`/files/${fileId}`, {
       method: 'GET',
@@ -188,6 +210,40 @@ class ApiService {
     const queryString = new URLSearchParams(params).toString()
     return this.request(`/admin/analytics${queryString ? `?${queryString}` : ''}`, {
       method: 'GET',
+    })
+  }
+
+  // Recipients endpoints (Admin)
+  async getRecipients(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/recipients${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getRecipientById(recipientId) {
+    return this.request(`/admin/recipients/${recipientId}`, {
+      method: 'GET',
+    })
+  }
+
+  async createRecipient(recipientData) {
+    return this.request('/admin/recipients', {
+      method: 'POST',
+      body: JSON.stringify(recipientData),
+    })
+  }
+
+  async updateRecipient(recipientId, recipientData) {
+    return this.request(`/admin/recipients/${recipientId}`, {
+      method: 'PUT',
+      body: JSON.stringify(recipientData),
+    })
+  }
+
+  async deleteRecipient(recipientId) {
+    return this.request(`/admin/recipients/${recipientId}`, {
+      method: 'DELETE',
     })
   }
 }

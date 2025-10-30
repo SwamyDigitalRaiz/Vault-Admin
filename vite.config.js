@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3001,
-    open: true
+    open: true,
+    host: true // listen on 0.0.0.0 for LAN access
   }
 })

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import apiService from '../services/api'
+import { toast } from '../utils/toast'
 
 const AuthContext = createContext()
 
@@ -93,6 +94,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(response.message || 'Login failed')
       }
     } catch (error) {
+      const msg = error?.message || 'Login failed'
+      toast.error(msg)
       throw error
     } finally {
       setIsLoading(false)
@@ -154,6 +157,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('AuthContext: Registration error:', error)
+      const msg = error?.message || 'Registration failed'
+      toast.error(msg)
       throw error
     } finally {
       setIsLoading(false)
@@ -206,6 +211,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(response.message || 'Profile update failed')
       }
     } catch (error) {
+      const msg = error?.message || 'Profile update failed'
+      toast.error(msg)
       throw error
     }
   }
@@ -227,6 +234,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(response.message || 'Password change failed')
       }
     } catch (error) {
+      const msg = error?.message || 'Password change failed'
+      toast.error(msg)
       throw error
     }
   }
@@ -242,6 +251,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(response.message || 'Failed to send password reset email')
       }
     } catch (error) {
+      const msg = error?.message || 'Failed to send password reset email'
+      toast.error(msg)
       throw error
     }
   }
@@ -257,6 +268,8 @@ export const AuthProvider = ({ children }) => {
         throw new Error(response.message || 'Failed to reset password')
       }
     } catch (error) {
+      const msg = error?.message || 'Failed to reset password'
+      toast.error(msg)
       throw error
     }
   }

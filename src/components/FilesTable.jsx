@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Search, 
@@ -23,139 +23,97 @@ import {
   UserCheck,
   Download
 } from 'lucide-react'
+import api from '../services/api'
 
 const FilesTable = ({ onFileSelect, onEditFile, fileType, onFileSelectNav }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [ownerFilter, setOwnerFilter] = useState('all')
-  const [sortField, setSortField] = useState('name')
-  const [sortDirection, setSortDirection] = useState('asc')
+  const [sortField, setSortField] = useState('createdAt')
+  const [sortDirection, setSortDirection] = useState('desc')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Mock data combining folders and files
-  const allItems = [
-    // Folders
-    {
-      id: 1,
-      name: 'Project Documents',
-      type: 'folder',
-      owner: 'john.doe@example.com',
-      ownerName: 'John Doe',
-      fileCount: 12,
-      size: '2.4 MB',
-      sizeBytes: 2516582,
-      createdAt: '2024-01-15',
-      lastModified: '2024-01-15 14:30',
-      isShared: true,
-      sharedWith: ['sarah@example.com', 'mike@example.com']
-    },
-    {
-      id: 2,
-      name: 'Client Resources',
-      type: 'folder',
-      owner: 'sarah.wilson@example.com',
-      ownerName: 'Sarah Wilson',
-      fileCount: 8,
-      size: '1.8 MB',
-      sizeBytes: 1887436,
-      createdAt: '2024-01-14',
-      lastModified: '2024-01-15 13:45',
-      isShared: false,
-      sharedWith: []
-    },
-    {
-      id: 3,
-      name: 'Meeting Notes',
-      type: 'folder',
-      owner: 'mike.johnson@example.com',
-      ownerName: 'Mike Johnson',
-      fileCount: 15,
-      size: '3.2 MB',
-      sizeBytes: 3355443,
-      createdAt: '2024-01-13',
-      lastModified: '2024-01-15 12:20',
-      isShared: true,
-      sharedWith: ['john@example.com']
-    },
-    // Files
-    {
-      id: 4,
-      name: 'project_proposal.pdf',
-      type: 'file',
-      fileType: 'document',
-      owner: 'john.doe@example.com',
-      ownerName: 'John Doe',
-      size: '2.1 MB',
-      sizeBytes: 2202009,
-      createdAt: '2024-01-15',
-      lastModified: '2024-01-15 14:30',
-      isShared: false,
-      sharedWith: []
-    },
-    {
-      id: 5,
-      name: 'team_photo.jpg',
-      type: 'file',
-      fileType: 'image',
-      owner: 'sarah.wilson@example.com',
-      ownerName: 'Sarah Wilson',
-      size: '890 KB',
-      sizeBytes: 911872,
-      createdAt: '2024-01-14',
-      lastModified: '2024-01-15 13:45',
-      isShared: true,
-      sharedWith: ['mike@example.com']
-    },
-    {
-      id: 6,
-      name: 'demo_video.mp4',
-      type: 'file',
-      fileType: 'video',
-      owner: 'mike.johnson@example.com',
-      ownerName: 'Mike Johnson',
-      size: '15.2 MB',
-      sizeBytes: 15938355,
-      createdAt: '2024-01-13',
-      lastModified: '2024-01-15 12:20',
-      isShared: false,
-      sharedWith: []
-    },
-    {
-      id: 7,
-      name: 'presentation.pptx',
-      type: 'file',
-      fileType: 'document',
-      owner: 'emily.davis@example.com',
-      ownerName: 'Emily Davis',
-      size: '1.8 MB',
-      sizeBytes: 1887436,
-      createdAt: '2024-01-12',
-      lastModified: '2024-01-14 16:30',
-      isShared: true,
-      sharedWith: ['john@example.com', 'sarah@example.com']
-    },
-    {
-      id: 8,
-      name: 'archive.zip',
-      type: 'file',
-      fileType: 'archive',
-      owner: 'david.brown@example.com',
-      ownerName: 'David Brown',
-      size: '5.7 MB',
-      sizeBytes: 5976883,
-      createdAt: '2024-01-11',
-      lastModified: '2024-01-15 10:15',
-      isShared: false,
-      sharedWith: []
+  const [items, setItems] = useState([])
+  const [allCount, setAllCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let isMounted = true
+    async function load() {
+      try {
+        setLoading(true)
+        setError(null)
+        const [foldersRes, filesRes] = await Promise.all([
+          api.getAdminFolders(),
+          api.getAdminFiles(),
+        ])
+
+        const folders = (
+          foldersRes?.data?.folders ??
+          foldersRes?.folders ??
+          (Array.isArray(foldersRes) ? foldersRes : [])
+        )
+        const files = (
+          filesRes?.data?.files ??
+          filesRes?.files ??
+          (Array.isArray(filesRes) ? filesRes : [])
+        )
+
+        const mappedFolders = folders.map((f) => ({
+          id: f.id || f._id,
+          name: f.name,
+          type: 'folder',
+          owner: f.owner?.email || f.ownerEmail || 'unknown',
+          ownerName: f.owner?.name || f.ownerName || '—',
+          fileCount: f.itemCount ?? f.childrenCount ?? 0,
+          size: f.totalSize != null ? `${Math.max(1, Math.round((f.totalSize / (1024*1024)) * 10) / 10)} MB` : '—',
+          sizeBytes: f.totalSize ?? 0,
+          createdAtRaw: f.createdAt ? new Date(f.createdAt).toISOString() : null,
+          lastModifiedRaw: (f.updatedAt || f.createdAt) ? new Date(f.updatedAt || f.createdAt).toISOString() : null,
+          createdAt: f.createdAt ? new Date(f.createdAt).toLocaleString() : '—',
+          lastModified: (f.updatedAt || f.createdAt) ? new Date(f.updatedAt || f.createdAt).toLocaleString() : '—',
+          isShared: !!f.isShared,
+          sharedWith: Array.isArray(f.sharedWith) ? f.sharedWith : [],
+        }))
+
+        const mappedFiles = files.map((fi) => ({
+          id: fi.id || fi._id,
+          name: fi.name || fi.originalName,
+          type: 'file',
+          fileType: (fi.mimeType || '').includes('image') ? 'image' : (fi.mimeType || '').includes('video') ? 'video' : (fi.extension ? 'document' : 'file'),
+          owner: fi.owner?.email || fi.ownerEmail || 'unknown',
+          ownerName: fi.owner?.name || fi.ownerName || '—',
+          size: fi.size != null ? (fi.size > 1024*1024 ? `${(fi.size/(1024*1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(fi.size/1024))} KB`) : '—',
+          sizeBytes: fi.size ?? 0,
+          createdAtRaw: fi.createdAt ? new Date(fi.createdAt).toISOString() : null,
+          lastModifiedRaw: (fi.updatedAt || fi.createdAt) ? new Date(fi.updatedAt || fi.createdAt).toISOString() : null,
+          createdAt: fi.createdAt ? new Date(fi.createdAt).toLocaleString() : '—',
+          lastModified: (fi.updatedAt || fi.createdAt) ? new Date(fi.updatedAt || fi.createdAt).toLocaleString() : '—',
+          isShared: !!fi.isShared,
+          sharedWith: Array.isArray(fi.sharedWith) ? fi.sharedWith : [],
+        }))
+
+        if (isMounted) {
+          setItems([...mappedFolders, ...mappedFiles])
+          setAllCount(mappedFolders.length + mappedFiles.length)
+        }
+      } catch (e) {
+        if (isMounted) setError(e?.message || 'Failed to load files')
+      } finally {
+        if (isMounted) setLoading(false)
+      }
     }
-  ]
+    load()
+    return () => { isMounted = false }
+  }, [])
 
   // Filter items based on fileType prop
-  const filteredByType = allItems.filter(item => {
+  const filteredByType = useMemo(() => items.filter(item => {
     if (fileType === 'all') return true
     if (fileType === 'folders') return item.type === 'folder'
     if (fileType === 'files') return item.type === 'file'
     return true
-  })
+  }), [items, fileType])
 
   const filteredItems = filteredByType.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -166,9 +124,21 @@ const FilesTable = ({ onFileSelect, onEditFile, fileType, onFileSelectNav }) => 
   })
 
   const sortedItems = [...filteredItems].sort((a, b) => {
+    // Handle date fields explicitly
+    if (sortField === 'createdAt') {
+      const aTime = a.createdAtRaw ? new Date(a.createdAtRaw).getTime() : 0
+      const bTime = b.createdAtRaw ? new Date(b.createdAtRaw).getTime() : 0
+      return sortDirection === 'asc' ? aTime - bTime : bTime - aTime
+    }
+    if (sortField === 'lastModified') {
+      const aTime = a.lastModifiedRaw ? new Date(a.lastModifiedRaw).getTime() : 0
+      const bTime = b.lastModifiedRaw ? new Date(b.lastModifiedRaw).getTime() : 0
+      return sortDirection === 'asc' ? aTime - bTime : bTime - aTime
+    }
+
     let aValue = a[sortField]
     let bValue = b[sortField]
-    
+
     if (sortField === 'name') {
       aValue = a.name.toLowerCase()
       bValue = b.name.toLowerCase()
@@ -179,7 +149,7 @@ const FilesTable = ({ onFileSelect, onEditFile, fileType, onFileSelectNav }) => 
       aValue = a.fileCount || 0
       bValue = b.fileCount || 0
     }
-    
+
     if (sortDirection === 'asc') {
       return aValue > bValue ? 1 : -1
     } else {
@@ -216,7 +186,7 @@ const FilesTable = ({ onFileSelect, onEditFile, fileType, onFileSelectNav }) => 
   }
 
   const getOwnerOptions = () => {
-    const owners = [...new Set(allItems.map(item => item.owner))]
+    const owners = [...new Set(items.map(item => item.owner))]
     return owners
   }
 
@@ -362,6 +332,12 @@ const FilesTable = ({ onFileSelect, onEditFile, fileType, onFileSelectNav }) => 
 
       {/* Table */}
       <div className="overflow-x-auto">
+        {loading && (
+          <div className="p-6 text-sm text-gray-600 dark:text-gray-400">Loading...</div>
+        )}
+        {error && (
+          <div className="p-6 text-sm text-red-600">{error}</div>
+        )}
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
@@ -536,7 +512,7 @@ const FilesTable = ({ onFileSelect, onEditFile, fileType, onFileSelectNav }) => 
       <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {sortedItems.length} of {allItems.length} items
+            Showing {sortedItems.length} of {allCount} items
           </div>
           <button className="text-sm text-primary-500 hover:text-primary-600 font-medium">
             View all items →
