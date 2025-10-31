@@ -36,28 +36,44 @@ const FilesTable = ({ onFileSelect, onEditFile, fileType, onFileSelectNav }) => 
   const [allCount, setAllCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [lastRefresh, setLastRefresh] = useState(new Date())
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const [foldersRes, filesRes] = await Promise.all([
+        api.getAdminFolders(),
+        api.getAdminFiles(),
+      ])
+
+      const folders = (
+        foldersRes?.data?.folders ??
+        foldersRes?.folders ??
+        (Array.isArray(foldersRes) ? foldersRes : [])
+      )
+      const files = (
+        filesRes?.data?.files ??
+        filesRes?.files ??
+        (Array.isArray(filesRes) ? filesRes : [])
+      )
+
+      return { folders, files }
+    } catch (err) {
+      console.error('Error loading folders/files:', err)
+      setError(err.message || 'Failed to load data')
+      throw err
+    } finally {
+      setLoading(false)
+      setLastRefresh(new Date())
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
     async function load() {
       try {
-        setLoading(true)
-        setError(null)
-        const [foldersRes, filesRes] = await Promise.all([
-          api.getAdminFolders(),
-          api.getAdminFiles(),
-        ])
-
-        const folders = (
-          foldersRes?.data?.folders ??
-          foldersRes?.folders ??
-          (Array.isArray(foldersRes) ? foldersRes : [])
-        )
-        const files = (
-          filesRes?.data?.files ??
-          filesRes?.files ??
-          (Array.isArray(filesRes) ? filesRes : [])
-        )
+        const { folders, files } = await loadData()
 
         const mappedFolders = folders.map((f) => ({
           id: f.id || f._id,

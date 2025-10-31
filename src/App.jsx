@@ -18,6 +18,7 @@ import AdminRolesPage from './components/AdminRolesPage'
 import ProfileSettingsPage from './components/ProfileSettingsPage'
 import UserDetailPage from './components/UserDetailPage'
 import EmailVerificationPage from './components/EmailVerificationPage'
+import ResetPasswordPage from './components/ResetPasswordPage'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { RoleProvider } from './contexts/RoleContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -137,9 +138,13 @@ const ContentArea = memo(({ currentRoute, selectedUser, onUserSelect, onBack }) 
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
-    // Check if we're on the verification route
-    if (window.location.pathname === '/verify-email') {
+    // Check if we're on routes that don't require auth
+    const pathname = window.location.pathname
+    if (pathname === '/verify-email') {
       return '/verify-email'
+    }
+    if (pathname === '/reset-password') {
+      return '/reset-password'
     }
     return '/dashboard'
   })
@@ -162,11 +167,21 @@ function App() {
     setSelectedUser(null)
   }, [])
 
-  // Handle email verification route separately (no auth required)
+  // Handle routes that don't require auth separately
   if (currentRoute === '/verify-email') {
     return (
       <ThemeProvider>
         <EmailVerificationPage />
+      </ThemeProvider>
+    )
+  }
+
+  if (currentRoute === '/reset-password') {
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <ResetPasswordPage />
+        </AuthProvider>
       </ThemeProvider>
     )
   }

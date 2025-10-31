@@ -3,11 +3,12 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, Lock, ArrowRight, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
-const ResetPasswordPage = ({ token, onBackToLogin }) => {
+const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: ''
   })
+  const [token, setToken] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -15,6 +16,18 @@ const ResetPasswordPage = ({ token, onBackToLogin }) => {
   const [success, setSuccess] = useState(false)
   
   const { resetPassword } = useAuth()
+
+  // Get token from URL on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const tokenFromUrl = urlParams.get('token')
+    
+    if (!tokenFromUrl) {
+      setError('Invalid or missing reset token. Please check your email link.')
+    } else {
+      setToken(tokenFromUrl)
+    }
+  }, [])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -27,19 +40,58 @@ const ResetPasswordPage = ({ token, onBackToLogin }) => {
   }
 
   const validateForm = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+    // Check if fields are empty
+    if (!formData.password || !formData.confirmPassword) {
+      setError('Please fill in all fields')
       return false
     }
+
+    // Check password length
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters long')
       return false
     }
+
+    // Check for uppercase letter
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Password must contain at least one uppercase letter')
+      return false
+    }
+
+    // Check for lowercase letter
+    if (!/[a-z]/.test(formData.password)) {
+      setError('Password must contain at least one lowercase letter')
+      return false
+    }
+
+    // Check for number
+    if (!/\d/.test(formData.password)) {
+      setError('Password must contain at least one number')
+      return false
+    }
+
+    // Check for special character
+    if (!/[^a-zA-Z0-9]/.test(formData.password)) {
+      setError('Password must contain at least one special character')
+      return false
+    }
+
+    // Check if passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return false
+    }
+
     return true
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    if (!token) {
+      setError('Invalid or missing reset token')
+      return
+    }
     
     if (!validateForm()) {
       return
@@ -56,6 +108,10 @@ const ResetPasswordPage = ({ token, onBackToLogin }) => {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleBackToLogin = () => {
+    window.location.href = '/login'
   }
 
   const pageVariants = {
@@ -79,6 +135,42 @@ const ResetPasswordPage = ({ token, onBackToLogin }) => {
         ease: 'easeOut'
       }
     }
+  }
+
+  // Show error if no token
+  if (!token && error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <motion.div
+          variants={pageVariants}
+          initial="hidden"
+          animate="visible"
+          className="w-full max-w-md"
+        >
+          <motion.div
+            variants={formVariants}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700 text-center"
+          >
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Invalid Reset Link
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {error}
+            </p>
+            <button
+              onClick={handleBackToLogin}
+              className="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Login
+            </button>
+          </motion.div>
+        </motion.div>
+      </div>
+    )
   }
 
   if (success) {
@@ -108,7 +200,7 @@ const ResetPasswordPage = ({ token, onBackToLogin }) => {
             </p>
             
             <button
-              onClick={onBackToLogin}
+              onClick={handleBackToLogin}
               className="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -248,7 +340,7 @@ const ResetPasswordPage = ({ token, onBackToLogin }) => {
             <div className="text-center">
               <button
                 type="button"
-                onClick={onBackToLogin}
+                onClick={handleBackToLogin}
                 className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 inline mr-1" />
