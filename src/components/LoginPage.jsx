@@ -1,4 +1,5 @@
-import React, { useState, useEffect, flushSync } from 'react'
+import React, { useState, useEffect,  } from 'react'
+import { flushSync } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
