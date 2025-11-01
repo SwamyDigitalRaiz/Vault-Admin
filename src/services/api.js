@@ -57,8 +57,9 @@ class ApiService {
   }
 
   // Authentication endpoints
+  // Admin login - uses separate admin endpoint
   async login(email, password) {
-    return this.request('/auth/login', {
+    return this.request('/admin/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
