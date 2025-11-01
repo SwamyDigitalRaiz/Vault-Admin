@@ -5,9 +5,24 @@ import { useAuth } from '../contexts/AuthContext'
 import ErrorDialog from './ErrorDialog'
 
 const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+  // Load saved credentials if "Remember Me" was previously enabled
+  const [formData, setFormData] = useState(() => {
+    const remembered = localStorage.getItem('vault_remember_me')
+    if (remembered === 'true') {
+      const savedEmail = localStorage.getItem('vault_remembered_email') || ''
+      // Don't load password for security - user needs to re-enter it
+      return {
+        email: savedEmail,
+        password: ''
+      }
+    }
+    return {
+      email: '',
+      password: ''
+    }
+  })
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('vault_remember_me') === 'true'
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -204,9 +219,11 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                   Remember me
                 </label>
               </div>
@@ -263,6 +280,18 @@ const LoginPage = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
                 
                 try {
                   await login(formData.email, formData.password)
+                  
+                  // Handle "Remember Me" functionality
+                  if (rememberMe) {
+                    // Save email for future logins
+                    localStorage.setItem('vault_remember_me', 'true')
+                    localStorage.setItem('vault_remembered_email', formData.email)
+                  } else {
+                    // Clear saved credentials if remember me is unchecked
+                    localStorage.removeItem('vault_remember_me')
+                    localStorage.removeItem('vault_remembered_email')
+                  }
+                  
                   // Login successful - AuthContext will handle the redirect
                 } catch (err) {
                   // Fallback alert if dialog doesn't work
