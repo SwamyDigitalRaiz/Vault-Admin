@@ -1,10 +1,34 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import apiService from '../services/api'
 import SummaryCards from './SummaryCards'
 import Charts from './Charts'
 import ActivitiesTable from './ActivitiesTable'
+import TodaySchedules from './TodaySchedules'
 
 const Dashboard = () => {
+  const [dashboardStats, setDashboardStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        setLoading(true)
+        const response = await apiService.getDashboardStats()
+        
+        if (response.success) {
+          setDashboardStats(response.data)
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardStats()
+  }, [])
+
   const pageVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -47,13 +71,16 @@ const Dashboard = () => {
           </motion.div>
 
           {/* Summary Cards */}
-          <SummaryCards />
+          <SummaryCards stats={dashboardStats} loading={loading} />
 
           {/* Charts Section */}
-          <Charts />
+          <Charts stats={dashboardStats} loading={loading} />
+
+          {/* Today's Schedules */}
+          <TodaySchedules stats={dashboardStats} loading={loading} />
 
           {/* Activities Table */}
-          <ActivitiesTable />
+          <ActivitiesTable stats={dashboardStats} loading={loading} />
       </motion.div>
     </div>
   )

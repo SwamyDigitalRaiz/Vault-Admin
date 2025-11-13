@@ -1,19 +1,9 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { UserPlus } from 'lucide-react'
 import UsersTable from './UsersTable'
-import CreateAdminModal from './CreateAdminModal'
 
 const UsersPage = ({ onUserSelect }) => {
-  const [showCreateAdminModal, setShowCreateAdminModal] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-
-  const handleAdminCreated = (newAdmin) => {
-    console.log('New admin created:', newAdmin)
-    // Trigger refresh of users table
-    setRefreshTrigger(prev => prev + 1)
-    setShowCreateAdminModal(false)
-  }
 
   const pageVariants = {
     hidden: { opacity: 0 },
@@ -60,15 +50,6 @@ const UsersPage = ({ onUserSelect }) => {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowCreateAdminModal(true)}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>Create Admin</span>
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center space-x-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,13 +71,6 @@ const UsersPage = ({ onUserSelect }) => {
           </motion.div>
         </div>
       </main>
-
-      {/* Create Admin Modal */}
-      <CreateAdminModal
-        isOpen={showCreateAdminModal}
-        onClose={() => setShowCreateAdminModal(false)}
-        onSuccess={handleAdminCreated}
-      />
     </motion.div>
   )
 }

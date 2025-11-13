@@ -2,49 +2,70 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Users, FolderOpen, FileText, Clock, HardDrive, TrendingUp, TrendingDown } from 'lucide-react'
 
-const SummaryCards = () => {
+// Helper function to format bytes
+const formatBytes = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+}
+
+const SummaryCards = ({ stats, loading }) => {
+  // Extract data from API response
+  const totalUsers = stats?.users?.total || 0
+  const activeUsers = stats?.users?.active || 0
+  const totalFolders = stats?.content?.folders || 0
+  const totalFiles = stats?.content?.files || 0
+  const totalSchedules = stats?.content?.schedules || 0
+  const recentRegistrations = stats?.users?.recentRegistrations || 0
+
+  // Calculate percentages for trends
+  const userActivePercent = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0
+  const recentUsersPercent = totalUsers > 0 ? Math.round((recentRegistrations / totalUsers) * 100) : 0
+
   const cards = [
     {
       title: 'Users',
-      totalValue: '2,847',
-      todayValue: '12',
-      change: '+12%',
+      totalValue: loading ? '...' : totalUsers.toLocaleString(),
+      todayValue: loading ? '...' : activeUsers.toString(),
+      change: loading ? '...' : `+${userActivePercent}%`,
       trend: 'up',
       icon: Users,
       color: 'bg-blue-500'
     },
     {
       title: 'Folders',
-      totalValue: '15,432',
-      todayValue: '23',
-      change: '+8%',
+      totalValue: loading ? '...' : totalFolders.toLocaleString(),
+      todayValue: loading ? '...' : totalFolders.toString(),
+      change: loading ? '...' : '+0%',
       trend: 'up',
       icon: FolderOpen,
       color: 'bg-green-500'
     },
     {
       title: 'Files',
-      totalValue: '89,156',
-      todayValue: '156',
-      change: '+23%',
+      totalValue: loading ? '...' : totalFiles.toLocaleString(),
+      todayValue: loading ? '...' : totalFiles.toString(),
+      change: loading ? '...' : '+0%',
       trend: 'up',
       icon: FileText,
       color: 'bg-purple-500'
     },
     {
       title: 'Schedules',
-      totalValue: '1,247',
-      todayValue: '8',
-      change: '-3%',
-      trend: 'down',
+      totalValue: loading ? '...' : totalSchedules.toLocaleString(),
+      todayValue: loading ? '...' : totalSchedules.toString(),
+      change: loading ? '...' : '+0%',
+      trend: 'up',
       icon: Clock,
       color: 'bg-orange-500'
     },
     {
       title: 'Storage Used',
-      totalValue: '68%',
-      todayValue: '+0.5%',
-      change: '+5%',
+      totalValue: loading ? '...' : `${stats?.storage?.percent || 0}%`,
+      todayValue: loading ? '...' : formatBytes(stats?.storage?.totalUsed || 0),
+      change: loading ? '...' : `${stats?.storage?.percent || 0}%`,
       trend: 'up',
       icon: HardDrive,
       color: 'bg-red-500'

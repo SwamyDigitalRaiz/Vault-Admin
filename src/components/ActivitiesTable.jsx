@@ -2,63 +2,8 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Upload, Trash2, Clock, AlertTriangle, User, FileText, FolderOpen } from 'lucide-react'
 
-const ActivitiesTable = () => {
-  const activities = [
-    {
-      id: 1,
-      user: 'John Doe',
-      action: 'upload',
-      item: 'project_document.pdf',
-      type: 'file',
-      date: '2024-01-15 14:30',
-      status: 'success'
-    },
-    {
-      id: 2,
-      user: 'Sarah Wilson',
-      action: 'schedule',
-      item: 'quarterly_report.xlsx',
-      type: 'file',
-      date: '2024-01-15 13:45',
-      status: 'success'
-    },
-    {
-      id: 3,
-      user: 'Mike Johnson',
-      action: 'delete',
-      item: 'old_photos',
-      type: 'folder',
-      date: '2024-01-15 12:20',
-      status: 'success'
-    },
-    {
-      id: 4,
-      user: 'Emily Davis',
-      action: 'schedule',
-      item: 'presentation.pptx',
-      type: 'file',
-      date: '2024-01-15 11:15',
-      status: 'failed'
-    },
-    {
-      id: 5,
-      user: 'David Brown',
-      action: 'upload',
-      item: 'team_photos',
-      type: 'folder',
-      date: '2024-01-15 10:30',
-      status: 'success'
-    },
-    {
-      id: 6,
-      user: 'Lisa Garcia',
-      action: 'schedule',
-      item: 'contract_draft.docx',
-      type: 'file',
-      date: '2024-01-15 09:45',
-      status: 'success'
-    }
-  ]
+const ActivitiesTable = ({ stats, loading }) => {
+  const activities = stats?.activities || []
 
   const getActionIcon = (action) => {
     switch (action) {
@@ -152,60 +97,74 @@ const ActivitiesTable = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {activities.map((activity) => (
-              <motion.tr
-                key={activity.id}
-                variants={rowVariants}
-                whileHover={{ 
-                  backgroundColor: 'rgba(99, 24, 63, 0.05)',
-                  transition: { duration: 0.2 }
-                }}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              >
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center mr-3">
-                      <User className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {activity.user}
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  Loading activities...
+                </td>
+              </tr>
+            ) : activities.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  No recent activities
+                </td>
+              </tr>
+            ) : (
+              activities.map((activity) => (
+                <motion.tr
+                  key={activity.id}
+                  variants={rowVariants}
+                  whileHover={{ 
+                    backgroundColor: 'rgba(99, 24, 63, 0.05)',
+                    transition: { duration: 0.2 }
+                  }}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center mr-3">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {activity.user}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getActionColor(activity.action)}`}>
-                    {getActionIcon(activity.action)}
-                    <span className="ml-1 capitalize">{activity.action}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center text-sm text-gray-900 dark:text-white">
-                    <span className="mr-2 text-gray-500 dark:text-gray-400">
-                      {getItemIcon(activity.type)}
-                    </span>
-                    {activity.item}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                  {activity.date}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {activity.status === 'failed' ? (
-                    <div className="flex items-center text-red-600">
-                      <AlertTriangle className="h-4 w-4 mr-1" />
-                      <span className="text-sm font-medium">Failed</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getActionColor(activity.action)}`}>
+                      {getActionIcon(activity.action)}
+                      <span className="ml-1 capitalize">{activity.action}</span>
                     </div>
-                  ) : (
-                    <div className="flex items-center text-green-600">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                      <span className="text-sm font-medium">Success</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center text-sm text-gray-900 dark:text-white">
+                      <span className="mr-2 text-gray-500 dark:text-gray-400">
+                        {getItemIcon(activity.type)}
+                      </span>
+                      {activity.item}
                     </div>
-                  )}
-                </td>
-              </motion.tr>
-            ))}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                    {activity.date}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {activity.status === 'failed' ? (
+                      <div className="flex items-center text-red-600">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        <span className="text-sm font-medium">Failed</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-green-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        <span className="text-sm font-medium">Success</span>
+                      </div>
+                    )}
+                  </td>
+                </motion.tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

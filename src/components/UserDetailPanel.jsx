@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   X, 
@@ -7,10 +7,16 @@ import {
   Phone, 
   Calendar, 
   Trash2,
-  Shield
+  Shield,
+  HardDrive,
+  Save
 } from 'lucide-react'
+import apiService from '../services/api'
 
-const UserDetailPanel = ({ user, onClose }) => {
+const UserDetailPanel = ({ user, onClose, onUserUpdated }) => {
+  const [storageLimitInput, setStorageLimitInput] = useState('')
+  const [isUpdatingStorage, setIsUpdatingStorage] = useState(false)
+  const [showStorageEditor, setShowStorageEditor] = useState(false)
   // Check if user exists
   if (!user) {
     return null
@@ -138,6 +144,91 @@ const UserDetailPanel = ({ user, onClose }) => {
               <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Notes</h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">{userDetails.notes}</p>
             </div>
+          </div>
+
+          {/* Storage Information */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <HardDrive className="h-5 w-5 mr-2" />
+                Storage Information
+              </h3>
+              <button
+                onClick={() => setShowStorageEditor(!showStorageEditor)}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {showStorageEditor ? 'Cancel' : 'Edit'}
+              </button>
+            </div>
+            
+            {showStorageEditor ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Storage Limit (GB)
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={storageLimitInput}
+                      onChange={(e) => setStorageLimitInput(e.target.value)}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent w-32"
+                      placeholder="1"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      = {formatBytes(parseFloat(storageLimitInput || 0) * 1024 * 1024 * 1024)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Current limit: {formatBytes(user?.storageLimit || 0)}
+                  </p>
+                </div>
+                <button
+                  onClick={handleUpdateStorageLimit}
+                  disabled={isUpdatingStorage}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{isUpdatingStorage ? 'Updating...' : 'Update Storage Limit'}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Storage Used:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {formatBytes(user?.storageUsed || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Storage Limit:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {formatBytes(user?.storageLimit || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Available:</span>
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                    {formatBytes((user?.storageLimit || 0) - (user?.storageUsed || 0))}
+                  </span>
+                </div>
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min(100, ((user?.storageUsed || 0) / (user?.storageLimit || 1)) * 100)}%`
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {Math.round(((user?.storageUsed || 0) / (user?.storageLimit || 1)) * 100)}% used
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* User Statistics */}

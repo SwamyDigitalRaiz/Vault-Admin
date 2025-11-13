@@ -2,34 +2,52 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { BarChart3, PieChart, TrendingUp } from 'lucide-react'
 
-const Charts = () => {
-  // Mock data for charts
-  const monthlyUploads = [
-    { month: 'Jan', uploads: 1200 },
-    { month: 'Feb', uploads: 1900 },
-    { month: 'Mar', uploads: 3000 },
-    { month: 'Apr', uploads: 2800 },
-    { month: 'May', uploads: 1890 },
-    { month: 'Jun', uploads: 2390 },
-    { month: 'Jul', uploads: 3490 }
+const Charts = ({ stats, loading }) => {
+  // Get chart data from API response
+  const monthlyUploads = stats?.charts?.monthlyUploads || []
+  const fileTypes = stats?.charts?.fileTypes || []
+  const scheduledSends = stats?.charts?.scheduledSends || []
+
+  // Calculate max values for chart scaling
+  const maxUploads = monthlyUploads.length > 0 
+    ? Math.max(...monthlyUploads.map(m => m.uploads), 1) 
+    : 3500
+  const maxSends = scheduledSends.length > 0
+    ? Math.max(...scheduledSends.map(s => s.sends), 1)
+    : 65
+
+  // Default data if loading or no data
+  const defaultMonthlyUploads = [
+    { month: 'Jan', uploads: 0 },
+    { month: 'Feb', uploads: 0 },
+    { month: 'Mar', uploads: 0 },
+    { month: 'Apr', uploads: 0 },
+    { month: 'May', uploads: 0 },
+    { month: 'Jun', uploads: 0 },
+    { month: 'Jul', uploads: 0 }
   ]
 
-  const fileTypes = [
-    { type: 'Images', count: 45, color: 'bg-blue-500' },
-    { type: 'Videos', count: 25, color: 'bg-green-500' },
-    { type: 'Documents', count: 20, color: 'bg-purple-500' },
-    { type: 'Other', count: 10, color: 'bg-orange-500' }
+  const defaultFileTypes = [
+    { type: 'Images', count: 0, color: 'bg-blue-500' },
+    { type: 'Videos', count: 0, color: 'bg-green-500' },
+    { type: 'Documents', count: 0, color: 'bg-purple-500' },
+    { type: 'Other', count: 0, color: 'bg-orange-500' }
   ]
 
-  const scheduledSends = [
-    { day: 'Mon', sends: 45 },
-    { day: 'Tue', sends: 52 },
-    { day: 'Wed', sends: 38 },
-    { day: 'Thu', sends: 61 },
-    { day: 'Fri', sends: 48 },
-    { day: 'Sat', sends: 23 },
-    { day: 'Sun', sends: 19 }
+  const defaultScheduledSends = [
+    { day: 'Mon', sends: 0 },
+    { day: 'Tue', sends: 0 },
+    { day: 'Wed', sends: 0 },
+    { day: 'Thu', sends: 0 },
+    { day: 'Fri', sends: 0 },
+    { day: 'Sat', sends: 0 },
+    { day: 'Sun', sends: 0 }
   ]
+
+  // Use real data or defaults
+  const displayMonthlyUploads = loading || monthlyUploads.length === 0 ? defaultMonthlyUploads : monthlyUploads
+  const displayFileTypes = loading || fileTypes.length === 0 ? defaultFileTypes : fileTypes
+  const displayScheduledSends = loading || scheduledSends.length === 0 ? defaultScheduledSends : scheduledSends
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -77,11 +95,11 @@ const Charts = () => {
         </div>
         
         <div className="h-48 flex items-end justify-between space-x-2">
-          {monthlyUploads.map((data, index) => (
+          {displayMonthlyUploads.map((data, index) => (
             <motion.div
               key={index}
               initial={{ height: 0 }}
-              animate={{ height: `${(data.uploads / 3500) * 100}%` }}
+              animate={{ height: `${(data.uploads / maxUploads) * 100}%` }}
               transition={{ duration: 0.8, delay: index * 0.1 }}
               className="bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg flex-1 min-h-[20px] relative group"
             >
@@ -93,7 +111,7 @@ const Charts = () => {
         </div>
         
         <div className="flex justify-between mt-4 text-sm text-gray-600 dark:text-gray-400">
-          {monthlyUploads.map((data, index) => (
+          {displayMonthlyUploads.map((data, index) => (
             <span key={index}>{data.month}</span>
           ))}
         </div>
@@ -114,7 +132,7 @@ const Charts = () => {
         </div>
         
         <div className="space-y-4">
-          {fileTypes.map((fileType, index) => (
+          {displayFileTypes.map((fileType, index) => (
             <motion.div
               key={index}
               initial={{ x: -20, opacity: 0 }}
@@ -151,11 +169,11 @@ const Charts = () => {
         </div>
         
         <div className="h-48 flex items-end justify-between space-x-2">
-          {scheduledSends.map((data, index) => (
+          {displayScheduledSends.map((data, index) => (
             <motion.div
               key={index}
               initial={{ height: 0 }}
-              animate={{ height: `${(data.sends / 65) * 100}%` }}
+              animate={{ height: `${(data.sends / maxSends) * 100}%` }}
               transition={{ duration: 0.8, delay: index * 0.1 }}
               className="bg-gradient-to-t from-purple-500 to-purple-400 rounded-t-lg flex-1 min-h-[20px] relative group"
             >
@@ -167,7 +185,7 @@ const Charts = () => {
         </div>
         
         <div className="flex justify-between mt-4 text-sm text-gray-600 dark:text-gray-400">
-          {scheduledSends.map((data, index) => (
+          {displayScheduledSends.map((data, index) => (
             <span key={index}>{data.day}</span>
           ))}
         </div>

@@ -175,6 +175,20 @@ class ApiService {
     })
   }
 
+  // System Settings APIs
+  async getSystemSettings() {
+    return this.request('/admin/settings', {
+      method: 'GET',
+    })
+  }
+
+  async updateSystemSettings(settingsData) {
+    return this.request('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settingsData),
+    })
+  }
+
   async getUserById(userId) {
     return this.request(`/users/${userId}`, {
       method: 'GET',
@@ -185,6 +199,13 @@ class ApiService {
     return this.request(`/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(userData),
+    })
+  }
+
+  async updateUserStorageLimit(userId, storageLimit) {
+    return this.request(`/admin/users/${userId}/storage-limit`, {
+      method: 'PUT',
+      body: JSON.stringify({ storageLimit }),
     })
   }
 

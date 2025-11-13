@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ArrowLeft,
@@ -15,8 +15,11 @@ import {
   Settings,
   Eye,
   X,
-  Users
+  Users,
+  HardDrive,
+  Save
 } from 'lucide-react'
+import apiService from '../services/api'
 
 const UserDetailPage = ({ user, onBack }) => {
   // Check if user exists
@@ -30,6 +33,64 @@ const UserDetailPage = ({ user, onBack }) => {
   
   // State for tabs
   const [activeTab, setActiveTab] = useState('overview')
+
+  // State for storage limit editing
+  const [storageLimitInput, setStorageLimitInput] = useState('')
+  const [isUpdatingStorage, setIsUpdatingStorage] = useState(false)
+  const [showStorageEditor, setShowStorageEditor] = useState(false)
+  const [currentUser, setCurrentUser] = useState(user)
+
+  // Initialize storage limit input when user changes
+  useEffect(() => {
+    if (currentUser?.storageLimit) {
+      const limitInGB = currentUser.storageLimit / (1024 * 1024 * 1024)
+      setStorageLimitInput(limitInGB.toString())
+    }
+  }, [currentUser])
+
+  // Update currentUser when user prop changes
+  useEffect(() => {
+    setCurrentUser(user)
+  }, [user])
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  const handleUpdateStorageLimit = async () => {
+    try {
+      setIsUpdatingStorage(true)
+      const limitInBytes = parseFloat(storageLimitInput) * 1024 * 1024 * 1024
+      
+      if (isNaN(limitInBytes) || limitInBytes < 0) {
+        alert('Please enter a valid storage limit')
+        return
+      }
+
+      const response = await apiService.updateUserStorageLimit(currentUser.id, Math.round(limitInBytes))
+
+      if (response.success) {
+        // Update local user state
+        setCurrentUser({
+          ...currentUser,
+          storageLimit: Math.round(limitInBytes)
+        })
+        setShowStorageEditor(false)
+        alert('Storage limit updated successfully! The user will see the updated limit when they refresh the app.')
+      } else {
+        alert(response.message || 'Failed to update storage limit')
+      }
+    } catch (err) {
+      console.error('Error updating storage limit:', err)
+      alert('Failed to update storage limit')
+    } finally {
+      setIsUpdatingStorage(false)
+    }
+  }
 
   // Schedule data with files and recipients
   const scheduleData = {
@@ -304,7 +365,7 @@ const UserDetailPage = ({ user, onBack }) => {
                             <Settings className="h-5 w-5 text-white" />
                           </div>
                           <div className="text-right">
-                            <div className="text-xl font-bold">{userStorageData.totalStorage}</div>
+                            <div className="text-xl font-bold">{formatBytes(currentUser?.storageUsed || 0)}</div>
                             <div className="text-blue-100 text-sm">Total Storage Used</div>
                           </div>
                         </div>
@@ -322,7 +383,92 @@ const UserDetailPage = ({ user, onBack }) => {
                             <div className="text-blue-100 text-xs">Individual Files</div>
                         </div>
                       </div>
-                    </div>
+                      </div>
+
+                      {/* Storage Limit Editor */}
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                            <HardDrive className="h-4 w-4 mr-2" />
+                            Storage Limit
+                          </h4>
+                          <button
+                            onClick={() => setShowStorageEditor(!showStorageEditor)}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {showStorageEditor ? 'Cancel' : 'Edit'}
+                          </button>
+                        </div>
+                        
+                        {showStorageEditor ? (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Storage Limit (GB)
+                              </label>
+                              <div className="flex items-center space-x-4">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.1"
+                                  value={storageLimitInput}
+                                  onChange={(e) => setStorageLimitInput(e.target.value)}
+                                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent w-32"
+                                  placeholder="1"
+                                />
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  = {formatBytes(parseFloat(storageLimitInput || 0) * 1024 * 1024 * 1024)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                Current limit: {formatBytes(currentUser?.storageLimit || 0)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={handleUpdateStorageLimit}
+                              disabled={isUpdatingStorage}
+                              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                              <Save className="h-4 w-4" />
+                              <span>{isUpdatingStorage ? 'Updating...' : 'Update Storage Limit'}</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Storage Used:</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatBytes(currentUser?.storageUsed || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Storage Limit:</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatBytes(currentUser?.storageLimit || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Available:</span>
+                              <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                {formatBytes((currentUser?.storageLimit || 0) - (currentUser?.storageUsed || 0))}
+                              </span>
+                            </div>
+                            <div className="mt-2">
+                              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full"
+                                  style={{
+                                    width: `${Math.min(100, ((currentUser?.storageUsed || 0) / (currentUser?.storageLimit || 1)) * 100)}%`
+                                  }}
+                                />
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {Math.round(((currentUser?.storageUsed || 0) / (currentUser?.storageLimit || 1)) * 100)}% used
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
                     {/* Folders Grid */}
                     <div className="mb-8">
@@ -585,7 +731,7 @@ const UserDetailPage = ({ user, onBack }) => {
                           <Settings className="h-5 w-5 text-white" />
                   </div>
                         <div className="text-right">
-                          <div className="text-xl font-bold">{userStorageData.totalStorage}</div>
+                          <div className="text-xl font-bold">{formatBytes(currentUser?.storageUsed || 0)}</div>
                           <div className="text-blue-100 text-sm">Total Storage Used</div>
                         </div>
                       </div>
@@ -603,8 +749,93 @@ const UserDetailPage = ({ user, onBack }) => {
                           <div className="text-blue-100 text-xs">Individual Files</div>
                         </div>
                   </div>
-                </div>
-                
+                      </div>
+
+                      {/* Storage Limit Editor */}
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                            <HardDrive className="h-4 w-4 mr-2" />
+                            Storage Limit
+                          </h4>
+                          <button
+                            onClick={() => setShowStorageEditor(!showStorageEditor)}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {showStorageEditor ? 'Cancel' : 'Edit'}
+                          </button>
+                        </div>
+                        
+                        {showStorageEditor ? (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Storage Limit (GB)
+                              </label>
+                              <div className="flex items-center space-x-4">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.1"
+                                  value={storageLimitInput}
+                                  onChange={(e) => setStorageLimitInput(e.target.value)}
+                                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent w-32"
+                                  placeholder="1"
+                                />
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  = {formatBytes(parseFloat(storageLimitInput || 0) * 1024 * 1024 * 1024)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                Current limit: {formatBytes(currentUser?.storageLimit || 0)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={handleUpdateStorageLimit}
+                              disabled={isUpdatingStorage}
+                              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                              <Save className="h-4 w-4" />
+                              <span>{isUpdatingStorage ? 'Updating...' : 'Update Storage Limit'}</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Storage Used:</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatBytes(currentUser?.storageUsed || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Storage Limit:</span>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatBytes(currentUser?.storageLimit || 0)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600 dark:text-gray-400">Available:</span>
+                              <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                {formatBytes((currentUser?.storageLimit || 0) - (currentUser?.storageUsed || 0))}
+                              </span>
+                            </div>
+                            <div className="mt-2">
+                              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                                <div
+                                  className="bg-blue-600 h-2 rounded-full"
+                                  style={{
+                                    width: `${Math.min(100, ((currentUser?.storageUsed || 0) / (currentUser?.storageLimit || 1)) * 100)}%`
+                                  }}
+                                />
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {Math.round(((currentUser?.storageUsed || 0) / (currentUser?.storageLimit || 1)) * 100)}% used
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                     {/* Folders Grid */}
                     <div className="mb-8">
                       <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Folders</h4>
@@ -658,9 +889,9 @@ const UserDetailPage = ({ user, onBack }) => {
                             <span className="text-sm font-medium text-gray-900 dark:text-white">{file.size}</span>
                           </div>
                         ))}
-                  </div>
-                </div>
-              </motion.div>
+                      </div>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
 
