@@ -190,7 +190,7 @@ class ApiService {
   }
 
   async getUserById(userId) {
-    return this.request(`/users/${userId}`, {
+    return this.request(`/admin/users/${userId}`, {
       method: 'GET',
     })
   }
@@ -356,6 +356,86 @@ class ApiService {
   async executeSchedule() {
     return this.request('/schedules/execute', {
       method: 'POST',
+    })
+  }
+
+  // Package management endpoints (Admin)
+  async getPackages(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/packages${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getPackageById(packageId) {
+    return this.request(`/admin/packages/${packageId}`, {
+      method: 'GET',
+    })
+  }
+
+  async getPackageStats() {
+    return this.request('/admin/packages/stats', {
+      method: 'GET',
+    })
+  }
+
+  async createPackage(packageData) {
+    return this.request('/admin/packages', {
+      method: 'POST',
+      body: JSON.stringify(packageData),
+    })
+  }
+
+  async updatePackage(packageId, packageData) {
+    return this.request(`/admin/packages/${packageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(packageData),
+    })
+  }
+
+  async deletePackage(packageId) {
+    return this.request(`/admin/packages/${packageId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Subscription management endpoints (Admin)
+  async getSubscriptions(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/subscriptions${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getSubscriptionById(subscriptionId) {
+    return this.request(`/admin/subscriptions/${subscriptionId}`, {
+      method: 'GET',
+    })
+  }
+
+  async getSubscriptionStats() {
+    return this.request('/admin/subscriptions/stats', {
+      method: 'GET',
+    })
+  }
+
+  async createSubscription(subscriptionData) {
+    return this.request('/admin/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(subscriptionData),
+    })
+  }
+
+  async updateSubscription(subscriptionId, subscriptionData) {
+    return this.request(`/admin/subscriptions/${subscriptionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(subscriptionData),
+    })
+  }
+
+  async deleteSubscription(subscriptionId) {
+    return this.request(`/admin/subscriptions/${subscriptionId}`, {
+      method: 'DELETE',
     })
   }
 }

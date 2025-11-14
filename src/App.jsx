@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, memo } from 'react'
+import React, { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
@@ -136,35 +136,76 @@ const ContentArea = memo(({ currentRoute, selectedUser, onUserSelect, onBack }) 
   )
 })
 
+// Helper function to get initial route from URL
+const getInitialRoute = () => {
+  const pathname = window.location.pathname
+  // Check if we're on routes that don't require auth
+  if (pathname === '/verify-email') {
+    return '/verify-email'
+  }
+  if (pathname === '/reset-password') {
+    return '/reset-password'
+  }
+  // Map URL pathname to route, or default to dashboard
+  const validRoutes = [
+    '/dashboard', '/users', '/contacts', '/folders', '/files', 
+    '/schedules', '/reports', '/analytics', '/notifications', 
+    '/subscriptions', '/packages', '/transactions', '/system-settings', 
+    '/admin-roles', '/profile-settings', '/user-detail'
+  ]
+  // If pathname is root or not a valid route, default to dashboard
+  if (pathname === '/' || pathname === '') {
+    return '/dashboard'
+  }
+  // If pathname is a valid route, use it; otherwise default to dashboard
+  return validRoutes.includes(pathname) ? pathname : '/dashboard'
+}
+
 function App() {
   const [currentRoute, setCurrentRoute] = useState(() => {
-    // Check if we're on routes that don't require auth
-    const pathname = window.location.pathname
-    if (pathname === '/verify-email') {
-      return '/verify-email'
+    const initialRoute = getInitialRoute()
+    // Update URL if it's root or empty to show /dashboard
+    if (window.location.pathname === '/' || window.location.pathname === '') {
+      window.history.replaceState({ route: initialRoute }, '', initialRoute)
     }
-    if (pathname === '/reset-password') {
-      return '/reset-password'
-    }
-    return '/dashboard'
+    return initialRoute
   })
   const [selectedUser, setSelectedUser] = useState(null)
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getInitialRoute()
+      setCurrentRoute(route)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   // Memoize the route change handler to prevent sidebar re-renders
   const handleRouteChange = useCallback((route) => {
     setCurrentRoute(route)
+    // Update browser URL without page reload
+    if (window.location.pathname !== route) {
+      window.history.pushState({ route }, '', route)
+    }
   }, [])
 
   // Handle user selection for user detail page
   const handleUserSelect = useCallback((user) => {
     setSelectedUser(user)
-    setCurrentRoute('/user-detail')
+    const route = '/user-detail'
+    setCurrentRoute(route)
+    window.history.pushState({ route }, '', route)
   }, [])
 
   // Handle back navigation
   const handleBack = useCallback(() => {
-    setCurrentRoute('/users')
+    const route = '/users'
+    setCurrentRoute(route)
     setSelectedUser(null)
+    window.history.pushState({ route }, '', route)
   }, [])
 
   // Handle routes that don't require auth separately

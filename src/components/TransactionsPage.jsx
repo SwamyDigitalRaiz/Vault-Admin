@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   CreditCard, 
-  DollarSign, 
+  IndianRupee, 
   Calendar, 
   CheckCircle, 
   AlertCircle, 
@@ -342,7 +342,7 @@ const TransactionsPage = () => {
                               ? 'text-green-600 dark:text-green-400' 
                               : 'text-red-600 dark:text-red-400'
                           }`}>
-                            ${Math.abs(transaction.amount).toFixed(2)}
+                            ₹{Math.abs(transaction.amount).toFixed(2)}
                           </span>
                         </div>
                       </td>
@@ -421,12 +421,12 @@ const TransactionsPage = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center">
                 <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                  <IndianRupee className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+                    ₹{transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
                   </p>
                 </div>
               </div>
