@@ -51,9 +51,11 @@ const UsersTable = ({ onUserSelect, refreshTrigger }) => {
       setIsLoading(true)
       setError('')
       
+      // Explicitly request only app users (exclude admin and staff)
       const params = {
         page: currentPage,
         limit: 10,
+        role: 'app', // Only fetch app users (backend will exclude admin/staff)
         ...(searchTerm && { search: searchTerm }),
         ...(statusFilter !== 'all' && { isActive: statusFilter === 'active' })
       }

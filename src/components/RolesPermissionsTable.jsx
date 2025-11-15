@@ -7,38 +7,26 @@ import {
   Shield, 
   X,
   Loader2,
-  Save
+  Save,
+  AlertTriangle
 } from 'lucide-react'
 import { useRole } from '../contexts/RoleContext'
 import PermissionGate from './PermissionGate'
 import apiService from '../services/api'
 import { toast } from '../utils/toast'
 
-const AdminRolesTable = () => {
+const RolesPermissionsTable = () => {
   const { 
-    ROLES, 
-    PERMISSIONS, 
-    ROLE_PERMISSIONS, 
-    getRoleDisplayName, 
-    getRoleColor,
-    updateUserRole 
+    PERMISSIONS
   } = useRole()
 
   const [isCreateRoleModalOpen, setIsCreateRoleModalOpen] = useState(false)
   const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false)
-  const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
   const [roles, setRoles] = useState([])
   const [isLoadingRoles, setIsLoadingRoles] = useState(false)
   const [isSavingRole, setIsSavingRole] = useState(false)
   const [isDeletingRole, setIsDeletingRole] = useState(false)
-  const [isCreatingStaff, setIsCreatingStaff] = useState(false)
-  const [newStaff, setNewStaff] = useState({
-    name: '',
-    email: '',
-    password: '',
-    roleId: null
-  })
   
   const [newRole, setNewRole] = useState({
     name: '',
@@ -52,64 +40,6 @@ const AdminRolesTable = () => {
   useEffect(() => {
     fetchRoles()
   }, [])
-
-  const handleAddStaff = async () => {
-    // Validate form
-    if (!newStaff.name || !newStaff.email || !newStaff.password) {
-      toast.error('Please fill in all required fields')
-      return
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(newStaff.email)) {
-      toast.error('Please enter a valid email address')
-      return
-    }
-
-    // Validate password length
-    if (newStaff.password.length < 8) {
-      toast.error('Password must be at least 8 characters long')
-      return
-    }
-
-    // Validate roleId if provided
-    if (!newStaff.roleId) {
-      toast.error('Please select a role for this staff member')
-      return
-    }
-
-    setIsCreatingStaff(true)
-    try {
-      // All new users are staff by default (one admin, rest are staff)
-      const response = await apiService.createAdminUser({
-        name: newStaff.name.trim(),
-        email: newStaff.email.trim(),
-        password: newStaff.password,
-        role: 'staff', // Always create as staff
-        roleId: newStaff.roleId // Link to Role model
-      })
-
-      if (response.success) {
-        toast.success('Staff member created successfully')
-        setIsAddStaffModalOpen(false)
-        setNewStaff({
-          name: '',
-          email: '',
-          password: '',
-          roleId: null
-        })
-      } else {
-        toast.error(response.message || 'Failed to create staff member')
-      }
-    } catch (error) {
-      console.error('Error creating staff:', error)
-      toast.error(error.message || 'Failed to create staff member')
-    } finally {
-      setIsCreatingStaff(false)
-    }
-  }
-
 
   const fetchRoles = async () => {
     setIsLoadingRoles(true)
@@ -125,8 +55,6 @@ const AdminRolesTable = () => {
       setIsLoadingRoles(false)
     }
   }
-
-
 
   const handleCreateRole = async () => {
     // Validate form
@@ -182,7 +110,6 @@ const AdminRolesTable = () => {
     }))
   }
 
-
   // Handle edit role
   const handleEditRole = async (roleId) => {
     // Find role from API
@@ -231,27 +158,16 @@ const AdminRolesTable = () => {
 
     setIsDeletingRole(true)
     try {
-      const response = await apiService.deleteRole(customRole._id || customRole.id)
-      if (response && response.success) {
+      const response = await apiService.deleteRole(roleId)
+      if (response.success) {
         toast.success(`Role "${roleName}" deleted successfully`)
         await fetchRoles() // Refresh roles list
       } else {
-        const errorMsg = response?.message || error?.message || 'Failed to delete role'
-        toast.error(errorMsg)
+        toast.error(response.message || 'Failed to delete role')
       }
     } catch (error) {
       console.error('Error deleting role:', error)
-      console.error('Full error:', error)
-      // Check if it's a network error or API error
-      let errorMsg = 'Failed to delete role'
-      if (error.message && error.message.includes('Failed to fetch')) {
-        errorMsg = 'Network error. Please check if the backend server is running.'
-      } else if (error.response?.data?.message) {
-        errorMsg = error.response.data.message
-      } else if (error.message) {
-        errorMsg = error.message
-      }
-      toast.error(errorMsg)
+      toast.error(error.message || 'Failed to delete role')
     } finally {
       setIsDeletingRole(false)
     }
@@ -259,15 +175,16 @@ const AdminRolesTable = () => {
 
   // Save edited role
   const handleSaveRole = async () => {
-    if (!selectedRole) {
-      toast.error('No role selected')
+    if (!selectedRole) return
+
+    // Validate form
+    if (!newRole.displayName) {
+      toast.error('Please fill in display name')
       return
     }
 
-    // Check if it's a system role (from database)
-    const role = roles.find(r => (r._id || r.id) === selectedRole)
-    if (role && role.isSystemRole) {
-      toast.error('Cannot edit system roles.')
+    if (newRole.permissions.length === 0) {
+      toast.error('Please select at least one permission')
       return
     }
 
@@ -312,7 +229,7 @@ const AdminRolesTable = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Staff Management
+                Roles & Permissions
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
                 Create and manage roles to define permissions for staff members
@@ -320,17 +237,6 @@ const AdminRolesTable = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Add Staff Button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsAddStaffModalOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add Staff</span>
-              </motion.button>
-              
               {/* Create Custom Role Button */}
               <PermissionGate permission="manage_admin_roles">
                 <motion.button
@@ -349,283 +255,156 @@ const AdminRolesTable = () => {
 
         {/* Roles List Content */}
         <div className="p-6">
-            {isLoadingRoles ? (
-              <div className="text-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-500 mx-auto mb-3" />
-                <span className="text-gray-600 dark:text-gray-400">Loading roles...</span>
-              </div>
-            ) : roles.length === 0 ? (
-              <div className="text-center py-12">
-                <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  No Roles Found
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Start by creating your first role. You can add admin and staff roles one by one.
-                </p>
-                <PermissionGate permission="manage_admin_roles">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsCreateRoleModalOpen(true)}
-                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center space-x-2 mx-auto"
+          {isLoadingRoles ? (
+            <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500 mx-auto mb-3" />
+              <span className="text-gray-600 dark:text-gray-400">Loading roles...</span>
+            </div>
+          ) : roles.length === 0 ? (
+            <div className="text-center py-12">
+              <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                No Roles Found
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Start by creating your first role. You can add admin and staff roles one by one.
+              </p>
+              <PermissionGate permission="manage_admin_roles">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsCreateRoleModalOpen(true)}
+                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center space-x-2 mx-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create First Role</span>
+                </motion.button>
+              </PermissionGate>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Roles from API */}
+              {roles.map((role) => {
+                const isSystemRole = role.isSystemRole || false
+                
+                return (
+                  <motion.div
+                    key={role._id || role.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow"
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>Create First Role</span>
-                  </motion.button>
-                </PermissionGate>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Roles from API - Admin and Staff roles */}
-                {roles.map((role) => {
-                  const isSystemRole = role.isSystemRole || false
-                  
-                  return (
-                    <motion.div
-                      key={role._id || role.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <Shield className={`h-5 w-5 ${isSystemRole ? 'text-red-500' : 'text-primary-500'}`} />
-                          <div>
-                            <h3 className="font-semibold text-gray-900 dark:text-white">
-                              {role.displayName}
-                            </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {role.name}
-                            </p>
-                          </div>
-                        </div>
-                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          role.color === 'red' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
-                          role.color === 'orange' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' :
-                          role.color === 'yellow' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                          role.color === 'green' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
-                          role.color === 'blue' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
-                          role.color === 'purple' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' :
-                          role.color === 'pink' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' :
-                          role.color === 'indigo' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400' :
-                          'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                        }`}>
-                          {role.displayName}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <Shield className={`h-5 w-5 ${isSystemRole ? 'text-red-500' : 'text-primary-500'}`} />
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
+                            {role.displayName}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {role.name}
+                          </p>
                         </div>
                       </div>
-
-                      {role.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                          {role.description}
-                        </p>
-                      )}
-
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Users Assigned:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{role.usageCount || 0}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Permissions:</span>
-                          <span className="font-semibold text-gray-900 dark:text-white">{role.permissions?.length || 0}</span>
-                        </div>
+                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        role.color === 'red' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' :
+                        role.color === 'orange' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' :
+                        role.color === 'yellow' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                        role.color === 'green' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                        role.color === 'blue' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400' :
+                        role.color === 'purple' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400' :
+                        role.color === 'pink' ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/20 dark:text-pink-400' :
+                        role.color === 'indigo' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                      }`}>
+                        {role.displayName}
                       </div>
+                    </div>
 
-                      {isSystemRole && (
-                        <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs text-yellow-800 dark:text-yellow-300">
-                          System Role - Cannot be deleted
-                        </div>
-                      )}
+                    {role.description && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                        {role.description}
+                      </p>
+                    )}
 
-                      <div className="flex items-center space-x-2">
-                        <PermissionGate permission="manage_admin_roles">
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Users Assigned:</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{role.usageCount || 0}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Permissions:</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">{role.permissions?.length || 0}</span>
+                      </div>
+                    </div>
+
+                    {isSystemRole && (
+                      <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs text-yellow-800 dark:text-yellow-300">
+                        System Role - Cannot be deleted
+                      </div>
+                    )}
+
+                    <div className="flex items-center space-x-2">
+                      <PermissionGate permission="manage_admin_roles">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleEditRole(role._id || role.id)}
+                          disabled={isSystemRole}
+                          className="flex-1 px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Edit className="h-3 w-3" />
+                          <span>Edit</span>
+                        </motion.button>
+                        {!isSystemRole && (
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => handleEditRole(role._id || role.id)}
-                            disabled={isSystemRole}
-                            className="flex-1 px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm font-medium flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => handleDeleteRole(role._id || role.id)}
+                            disabled={(role.usageCount || 0) > 0 || isDeletingRole}
+                            className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-1"
                           >
-                            <Edit className="h-3 w-3" />
-                            <span>Edit</span>
-                          </motion.button>
-                          {!isSystemRole && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleDeleteRole(role._id || role.id)}
-                              disabled={(role.usageCount || 0) > 0 || isDeletingRole}
-                              className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-1"
-                            >
-                              {isDeletingRole ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3 w-3" />
-                              )}
-                              <span>Delete</span>
-                            </motion.button>
-                          )}
-                        </PermissionGate>
-                      </div>
-
-                      {/* Permissions Preview */}
-                      {role.permissions && role.permissions.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Key Permissions:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {role.permissions.slice(0, 3).map((permission) => (
-                              <span
-                                key={permission}
-                                className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs"
-                              >
-                                {permission.replace(/_/g, ' ').substring(0, 15)}
-                              </span>
-                            ))}
-                            {role.permissions.length > 3 && (
-                              <span className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs">
-                                +{role.permissions.length - 3} more
-                              </span>
+                            {isDeletingRole ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3 w-3" />
                             )}
-                          </div>
+                            <span>Delete</span>
+                          </motion.button>
+                        )}
+                      </PermissionGate>
+                    </div>
+
+                    {/* Permissions Preview */}
+                    {role.permissions && role.permissions.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Key Permissions:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {role.permissions.slice(0, 3).map((permission) => (
+                            <span
+                              key={permission}
+                              className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs"
+                            >
+                              {permission.replace(/_/g, ' ').substring(0, 15)}
+                            </span>
+                          ))}
+                          {role.permissions.length > 3 && (
+                            <span className="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs">
+                              +{role.permissions.length - 3} more
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </motion.div>
-                  )
-                })}
-              </div>
-            )}
+                      </div>
+                    )}
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Add Staff Modal */}
-      {isAddStaffModalOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-          onClick={() => setIsAddStaffModalOpen(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md"
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Add New Staff
-                </h3>
-                <button
-                  onClick={() => setIsAddStaffModalOpen(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={newStaff.name}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter full name"
-                    disabled={isCreatingStaff}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={newStaff.email}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter email address"
-                    disabled={isCreatingStaff}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Password <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={newStaff.password}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, password: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter password (min 8 characters)"
-                    disabled={isCreatingStaff}
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Password must be at least 8 characters long
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Assign Role <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={newStaff.roleId || ''}
-                    onChange={(e) => setNewStaff(prev => ({ ...prev, roleId: e.target.value || null }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    disabled={isCreatingStaff || roles.length === 0}
-                    required
-                  >
-                    <option value="">Select a role...</option>
-                    {roles.map((role) => (
-                      <option key={role._id || role.id} value={role._id || role.id}>
-                        {role.displayName} - {role.description || 'No description'}
-                      </option>
-                    ))}
-                  </select>
-                  {roles.length === 0 ? (
-                    <p className="text-xs text-orange-500 dark:text-orange-400 mt-1">
-                      No roles available. Please create a role first.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Select a role from the roles list to define what this staff member can do
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setIsAddStaffModalOpen(false)}
-                  disabled={isCreatingStaff}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddStaff}
-                  disabled={isCreatingStaff}
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  {isCreatingStaff && <Loader2 className="h-4 w-4 animate-spin" />}
-                  <span>{isCreatingStaff ? 'Creating...' : 'Add Staff'}</span>
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Create Role Modal */}
+      {/* Edit Role Modal */}
       {isEditRoleModalOpen && selectedRole && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -916,4 +695,5 @@ const AdminRolesTable = () => {
   )
 }
 
-export default AdminRolesTable
+export default RolesPermissionsTable
+

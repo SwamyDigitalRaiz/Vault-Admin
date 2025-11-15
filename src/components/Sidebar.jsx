@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react'
+import React, { useState, memo, useRef, useEffect } from 'react'
 import { 
   LayoutDashboard, 
   Users, 
@@ -24,7 +24,9 @@ import {
   X,
   CreditCard,
   Package,
-  Receipt
+  Receipt,
+  Gift,
+  HelpCircle
 } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { useRole } from '../contexts/RoleContext'
@@ -34,8 +36,83 @@ const Sidebar = ({ currentRoute, onRouteChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const { isDark, toggleTheme } = useTheme()
+  const navRef = useRef(null)
+  const scrollRestoreTimeoutRef = useRef(null)
 
   const { canAccessRoute } = useRole()
+
+  // Save scroll position whenever it changes
+  const saveScrollPosition = () => {
+    if (navRef.current) {
+      const scrollTop = navRef.current.scrollTop
+      sessionStorage.setItem('sidebarScrollPosition', scrollTop.toString())
+    }
+  }
+
+  // Restore scroll position (with multiple attempts to ensure it sticks)
+  const restoreScrollPosition = (delay = 200) => {
+    // Clear any pending restore
+    if (scrollRestoreTimeoutRef.current) {
+      clearTimeout(scrollRestoreTimeoutRef.current)
+    }
+
+    scrollRestoreTimeoutRef.current = setTimeout(() => {
+      if (!navRef.current) return
+      
+      const savedScroll = sessionStorage.getItem('sidebarScrollPosition')
+      if (!savedScroll) return
+      
+      const scrollValue = parseInt(savedScroll, 10)
+      if (isNaN(scrollValue) || scrollValue < 0) return
+
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        if (!navRef.current) return
+        
+        // Set scroll position
+        navRef.current.scrollTop = scrollValue
+        
+        // Verify it was set correctly, retry if needed
+        requestAnimationFrame(() => {
+          if (navRef.current && Math.abs(navRef.current.scrollTop - scrollValue) > 1) {
+            navRef.current.scrollTop = scrollValue
+          }
+        })
+      })
+      
+      scrollRestoreTimeoutRef.current = null
+    }, delay)
+  }
+
+  // Restore scroll on mount/refresh
+  useEffect(() => {
+    // Multiple attempts to ensure scroll is restored
+    restoreScrollPosition(100)
+    restoreScrollPosition(300)
+    restoreScrollPosition(500)
+    
+    return () => {
+      if (scrollRestoreTimeoutRef.current) {
+        clearTimeout(scrollRestoreTimeoutRef.current)
+      }
+    }
+  }, []) // Only on mount
+
+  // Restore scroll after route changes (but with delay to not interfere with API calls)
+  useEffect(() => {
+    // Save current scroll before route change might cause re-render
+    saveScrollPosition()
+    
+    // Restore after route change completes (multiple attempts)
+    restoreScrollPosition(150)
+    restoreScrollPosition(300)
+    
+    return () => {
+      if (scrollRestoreTimeoutRef.current) {
+        clearTimeout(scrollRestoreTimeoutRef.current)
+      }
+    }
+  }, [currentRoute]) // Re-run when route changes
 
   const navigationSections = [
     {
@@ -56,6 +133,12 @@ const Sidebar = ({ currentRoute, onRouteChange }) => {
           title: 'Users', 
           icon: Users, 
           route: '/users',
+          permission: 'view_users'
+        },
+        { 
+          title: 'Referrals', 
+          icon: Gift, 
+          route: '/referrals',
           permission: 'view_users'
         },
         { 
@@ -147,18 +230,43 @@ const Sidebar = ({ currentRoute, onRouteChange }) => {
           icon: Settings, 
           route: '/system-settings',
           permission: 'view_settings'
+        }
+      ]
+    },
+    {
+      title: 'Staff Management',
+      items: [
+        { 
+          title: 'Staff', 
+          icon: Users, 
+          route: '/staff',
+          permission: 'manage_admin_roles'
         },
         { 
-          title: 'Admin Roles', 
-          icon: UserCog, 
-          route: '/admin-roles',
+          title: 'Roles & Permissions', 
+          icon: Shield, 
+          route: '/roles-permissions',
           permission: 'manage_admin_roles'
+        }
+      ]
+    },
+    {
+      title: 'Support',
+      items: [
+        { 
+          title: 'Support Tickets', 
+          icon: HelpCircle, 
+          route: '/support',
+          permission: 'view_support'
         }
       ]
     }
   ]
 
   const handleRouteChange = (route) => {
+    // Save current scroll position before route change
+    saveScrollPosition()
+    // Change route immediately
     onRouteChange(route)
     setIsMobileOpen(false)
   }
@@ -247,7 +355,33 @@ const Sidebar = ({ currentRoute, onRouteChange }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav 
+        ref={(el) => {
+          navRef.current = el
+          // Restore scroll immediately when ref is set (component mounted)
+          if (el) {
+            const savedScroll = sessionStorage.getItem('sidebarScrollPosition')
+            if (savedScroll) {
+              const scrollValue = parseInt(savedScroll, 10)
+              if (!isNaN(scrollValue) && scrollValue >= 0) {
+                // Use requestAnimationFrame to ensure DOM is ready
+                requestAnimationFrame(() => {
+                  if (el) {
+                    el.scrollTop = scrollValue
+                  }
+                })
+              }
+            }
+          }
+        }}
+        className="flex-1 overflow-y-auto py-4"
+        onScroll={(e) => {
+          // Save scroll position immediately on scroll
+          if (e.target && e.target.scrollTop !== undefined) {
+            sessionStorage.setItem('sidebarScrollPosition', e.target.scrollTop.toString())
+          }
+        }}
+      >
         <div className="space-y-6">
           {navigationSections.map((section, index) => {
             // Filter items that user has permission to see

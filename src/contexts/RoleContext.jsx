@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { useAuth } from './AuthContext'
+import apiService from '../services/api'
 
 const RoleContext = createContext()
 
@@ -77,7 +79,11 @@ export const PERMISSIONS = {
   MANAGE_TRANSACTIONS: 'manage_transactions',
   
   // Dashboard
-  VIEW_DASHBOARD: 'view_dashboard'
+  VIEW_DASHBOARD: 'view_dashboard',
+  
+  // Support Management
+  VIEW_SUPPORT: 'view_support',
+  MANAGE_SUPPORT: 'manage_support'
 }
 
 // Role-based permissions mapping
@@ -194,34 +200,144 @@ const ROUTE_PERMISSIONS = {
   '/reports': [PERMISSIONS.VIEW_REPORTS],
   '/analytics': [PERMISSIONS.VIEW_ANALYTICS],
   '/system-settings': [PERMISSIONS.VIEW_SETTINGS],
-  '/admin-roles': [PERMISSIONS.MANAGE_ADMIN_ROLES]
+  '/admin-roles': [PERMISSIONS.MANAGE_ADMIN_ROLES],
+  '/staff': [PERMISSIONS.MANAGE_ADMIN_ROLES],
+  '/roles-permissions': [PERMISSIONS.MANAGE_ADMIN_ROLES],
+  '/support': [PERMISSIONS.VIEW_SUPPORT]
 }
 
 export const RoleProvider = ({ children }) => {
+  const { user: authUser, isAuthenticated } = useAuth()
   const [currentUser, setCurrentUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Initialize with a default user (in real app, this would come from authentication)
+  // Load user role and permissions from AuthContext and backend
   useEffect(() => {
-    // Simulate loading user data
-    const loadUser = async () => {
+    const loadUserPermissions = async () => {
+      console.log('RoleContext: loadUserPermissions triggered', {
+        hasAuthUser: !!authUser,
+        isAuthenticated,
+        authUserRole: authUser?.role,
+        authUserRoleId: authUser?.roleId
+      })
+      
       setIsLoading(true)
-      // In a real app, this would be an API call
-      const user = {
-        id: 1,
-        name: 'John Smith',
-        email: 'john.smith@vault.com',
-        role: ROLES.SUPER_ADMIN, // Default to super admin for demo
-        permissions: ROLE_PERMISSIONS[ROLES.SUPER_ADMIN],
-        avatar: null,
-        lastLogin: new Date().toISOString()
+      
+      try {
+        if (!authUser || !isAuthenticated) {
+          console.log('RoleContext: No auth user or not authenticated, clearing currentUser')
+          setCurrentUser(null)
+          setIsLoading(false)
+          return
+        }
+
+        // If user is admin, give all permissions
+        if (authUser.role === 'admin' || authUser.role === 'super_admin') {
+          setCurrentUser({
+            ...authUser,
+            role: ROLES.SUPER_ADMIN,
+            permissions: ROLE_PERMISSIONS[ROLES.SUPER_ADMIN]
+          })
+          setIsLoading(false)
+          return
+        }
+
+        // For staff members, fetch role and permissions from backend
+        if (authUser.role === 'staff' || authUser.roleId) {
+          try {
+            console.log('RoleContext: Fetching staff role permissions for user:', authUser.email)
+            
+            // Get current user info from backend (includes roleId and populated role)
+            const response = await apiService.getMe()
+            console.log('RoleContext: getMe response:', response)
+            
+            if (response.success && response.data.user) {
+              const userData = response.data.user
+              // Check for roleDetails first (new field), then fallback to roleId (populated object)
+              const roleDetails = userData.roleDetails || (userData.roleId && typeof userData.roleId === 'object' ? userData.roleId : null)
+              const roleId = roleDetails?._id || userData.roleId?._id || userData.roleId || authUser.roleId
+              
+              console.log('RoleContext: Role details from getMe:', {
+                roleId,
+                roleDetails,
+                hasRoleDetails: !!userData.roleDetails,
+                roleIdType: typeof userData.roleId,
+                hasPermissions: roleDetails && roleDetails.permissions
+              })
+              
+              // If role details exist (populated from backend), use permissions from there
+              if (roleDetails && roleDetails.permissions && Array.isArray(roleDetails.permissions)) {
+                const permissions = roleDetails.permissions || []
+                
+                console.log('RoleContext: Setting permissions from populated role:', permissions)
+                
+                setCurrentUser({
+                  ...authUser,
+                  role: 'staff',
+                  roleId: roleId,
+                  permissions: permissions,
+                  roleName: roleDetails.displayName || roleDetails.name
+                })
+                setIsLoading(false)
+                return
+              }
+              
+              // Fallback: if roleId exists but role not populated, fetch role details
+              if (roleId) {
+                console.log('RoleContext: Fetching role by ID:', roleId)
+                const roleResponse = await apiService.getRoleById(roleId)
+                console.log('RoleContext: getRoleById response:', roleResponse)
+                
+                if (roleResponse.success && roleResponse.data.role) {
+                  const role = roleResponse.data.role
+                  const permissions = role.permissions || []
+                  
+                  console.log('RoleContext: Setting permissions from getRoleById:', permissions)
+                  
+                  setCurrentUser({
+                    ...authUser,
+                    role: 'staff',
+                    roleId: roleId,
+                    permissions: permissions,
+                    roleName: role.displayName || role.name
+                  })
+                  setIsLoading(false)
+                  return
+                }
+              }
+              
+              console.warn('RoleContext: No role permissions found for staff member')
+            } else {
+              console.error('RoleContext: getMe failed or no user data:', response)
+            }
+          } catch (error) {
+            console.error('RoleContext: Error fetching staff role permissions:', error)
+          }
+        }
+
+        // Fallback: use default permissions based on role
+        const roleKey = authUser.role === 'staff' ? ROLES.VIEWER : authUser.role
+        const defaultPermissions = ROLE_PERMISSIONS[roleKey] || ROLE_PERMISSIONS[ROLES.VIEWER]
+        
+        setCurrentUser({
+          ...authUser,
+          permissions: defaultPermissions
+        })
+      } catch (error) {
+        console.error('Error loading user permissions:', error)
+        // Fallback to viewer permissions
+        setCurrentUser({
+          ...authUser,
+          role: ROLES.VIEWER,
+          permissions: ROLE_PERMISSIONS[ROLES.VIEWER]
+        })
+      } finally {
+        setIsLoading(false)
       }
-      setCurrentUser(user)
-      setIsLoading(false)
     }
     
-    loadUser()
-  }, [])
+    loadUserPermissions()
+  }, [authUser, isAuthenticated])
 
   // Check if user has a specific permission
   const hasPermission = (permission) => {

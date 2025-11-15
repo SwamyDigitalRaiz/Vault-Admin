@@ -13,8 +13,12 @@ import NotificationsPage from './components/NotificationsPage'
 import SubscriptionPage from './components/SubscriptionPage'
 import PackagesPage from './components/PackagesPage'
 import TransactionsPage from './components/TransactionsPage'
+import ReferralPage from './components/ReferralPage'
 import SystemSettingsPage from './components/SystemSettingsPage'
 import AdminRolesPage from './components/AdminRolesPage'
+import StaffPage from './components/StaffPage'
+import RolesPermissionsPage from './components/RolesPermissionsPage'
+import SupportPage from './components/SupportPage'
 import ProfileSettingsPage from './components/ProfileSettingsPage'
 import UserDetailPage from './components/UserDetailPage'
 import EmailVerificationPage from './components/EmailVerificationPage'
@@ -71,10 +75,18 @@ const ContentArea = memo(({ currentRoute, selectedUser, onUserSelect, onBack }) 
         return PackagesPage
       case '/transactions':
         return TransactionsPage
+      case '/referrals':
+        return ReferralPage
       case '/system-settings':
         return SystemSettingsPage
       case '/admin-roles':
         return AdminRolesPage
+      case '/staff':
+        return StaffPage
+      case '/roles-permissions':
+        return RolesPermissionsPage
+      case '/support':
+        return SupportPage
       case '/profile-settings':
         return ProfileSettingsPage
       case '/user-detail':
@@ -126,11 +138,19 @@ const ContentArea = memo(({ currentRoute, selectedUser, onUserSelect, onBack }) 
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
+      transition={{ duration: 0.2, ease: 'easeInOut' }}
       className="h-full"
     >
       <AnimatePresence mode="wait">
-        {renderContent()}
+        <motion.div
+          key={currentRoute}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          {renderContent()}
+        </motion.div>
       </AnimatePresence>
     </motion.div>
   )
@@ -150,8 +170,8 @@ const getInitialRoute = () => {
   const validRoutes = [
     '/dashboard', '/users', '/contacts', '/folders', '/files', 
     '/schedules', '/reports', '/analytics', '/notifications', 
-    '/subscriptions', '/packages', '/transactions', '/system-settings', 
-    '/admin-roles', '/profile-settings', '/user-detail'
+    '/subscriptions', '/packages', '/transactions', '/referrals', '/system-settings', 
+    '/admin-roles', '/staff', '/roles-permissions', '/support', '/profile-settings', '/user-detail'
   ]
   // If pathname is root or not a valid route, default to dashboard
   if (pathname === '/' || pathname === '') {
@@ -236,7 +256,7 @@ function App() {
               <MemoizedSidebar currentRoute={currentRoute} onRouteChange={handleRouteChange} />
               <div className="flex-1 flex flex-col min-w-0 h-full">
                 <MemoizedTopBar onRouteChange={handleRouteChange} />
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto">
                   <ContentArea 
                     currentRoute={currentRoute} 
                     selectedUser={selectedUser}

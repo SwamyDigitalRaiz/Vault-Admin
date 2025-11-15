@@ -27,12 +27,19 @@ export const AuthProvider = ({ children }) => {
               lastName: nameParts.slice(1).join(' ') || '',
               email: user.email,
               role: user.role === 'admin' ? 'super_admin' : user.role,
+              roleId: user.roleId?._id || user.roleId || null, // Store roleId for staff members
               avatar: user.avatar,
               lastLogin: user.lastLogin,
               isEmailVerified: user.isEmailVerified,
               storageUsed: user.storageUsed,
               storageLimit: user.storageLimit
             }
+            console.log('AuthContext: Setting user on refresh:', {
+              email: userData.email,
+              role: userData.role,
+              roleId: userData.roleId,
+              hasRoleId: !!userData.roleId
+            })
             setUser(userData)
             setIsAuthenticated(true)
           } else {
@@ -75,6 +82,7 @@ export const AuthProvider = ({ children }) => {
           lastName: nameParts.slice(1).join(' ') || '',
           email: user.email,
           role: user.role === 'admin' ? 'super_admin' : user.role,
+          roleId: user.roleId?._id || user.roleId || null, // Store roleId for staff members
           avatar: user.avatar,
           lastLogin: new Date().toISOString(),
           isEmailVerified: user.isEmailVerified,

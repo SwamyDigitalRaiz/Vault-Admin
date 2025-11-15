@@ -215,6 +215,46 @@ class ApiService {
     })
   }
 
+  // Staff management endpoints (separate from users)
+  async getStaff(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/staff${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getStaffById(staffId) {
+    return this.request(`/admin/staff/${staffId}`, {
+      method: 'GET',
+    })
+  }
+
+  async createStaff(staffData) {
+    return this.request('/admin/staff', {
+      method: 'POST',
+      body: JSON.stringify(staffData),
+    })
+  }
+
+  async updateStaff(staffId, staffData) {
+    return this.request(`/admin/staff/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(staffData),
+    })
+  }
+
+  async deleteStaff(staffId) {
+    return this.request(`/admin/staff/${staffId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async toggleStaffStatus(staffId) {
+    return this.request(`/admin/staff/${staffId}/toggle-status`, {
+      method: 'PATCH',
+    })
+  }
+
   // File management endpoints
   async getFiles(params = {}) {
     const queryString = new URLSearchParams(params).toString()
@@ -419,6 +459,40 @@ class ApiService {
     })
   }
 
+  // Referral management endpoints (Admin)
+  async getReferrals(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/referrals${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getReferralById(userId) {
+    return this.request(`/admin/referrals/${userId}`, {
+      method: 'GET',
+    })
+  }
+
+  async getReferralStats() {
+    return this.request('/admin/referrals/stats', {
+      method: 'GET',
+    })
+  }
+
+  // Referral settings endpoints (Admin)
+  async getReferralSettings() {
+    return this.request('/admin/referrals/settings', {
+      method: 'GET',
+    })
+  }
+
+  async updateReferralSettings(settings) {
+    return this.request('/admin/referrals/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    })
+  }
+
   async createSubscription(subscriptionData) {
     return this.request('/admin/subscriptions', {
       method: 'POST',
@@ -436,6 +510,78 @@ class ApiService {
   async deleteSubscription(subscriptionId) {
     return this.request(`/admin/subscriptions/${subscriptionId}`, {
       method: 'DELETE',
+    })
+  }
+
+  // Role management endpoints (Admin)
+  async getRoles() {
+    return this.request('/admin/roles', {
+      method: 'GET',
+    })
+  }
+
+  async getRoleById(roleId) {
+    return this.request(`/admin/roles/${roleId}`, {
+      method: 'GET',
+    })
+  }
+
+  async createRole(roleData) {
+    return this.request('/admin/roles', {
+      method: 'POST',
+      body: JSON.stringify(roleData),
+    })
+  }
+
+  async updateRole(roleId, roleData) {
+    return this.request(`/admin/roles/${roleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(roleData),
+    })
+  }
+
+  async deleteRole(roleId) {
+    try {
+      return await this.request(`/admin/roles/${roleId}`, {
+        method: 'DELETE',
+      })
+    } catch (error) {
+      console.error('[API Service] Delete role error:', error)
+      throw error
+    }
+  }
+
+  // Support ticket management endpoints (Admin)
+  async getSupportTickets(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/support/tickets${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getSupportTicketById(ticketId) {
+    return this.request(`/admin/support/tickets/${ticketId}`, {
+      method: 'GET',
+    })
+  }
+
+  async updateSupportTicket(ticketId, ticketData) {
+    return this.request(`/admin/support/tickets/${ticketId}`, {
+      method: 'PUT',
+      body: JSON.stringify(ticketData),
+    })
+  }
+
+  async addSupportTicketMessage(ticketId, messageData) {
+    return this.request(`/admin/support/tickets/${ticketId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    })
+  }
+
+  async getSupportStats() {
+    return this.request('/admin/support/stats', {
+      method: 'GET',
     })
   }
 }
