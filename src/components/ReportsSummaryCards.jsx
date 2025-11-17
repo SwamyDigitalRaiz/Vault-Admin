@@ -11,104 +11,65 @@ import {
   Activity
 } from 'lucide-react'
 
-const ReportsSummaryCards = ({ dateRange }) => {
-  // Mock data based on date range
-  const getDataForRange = (range) => {
-    const data = {
-      '7days': {
-        totalUsers: 1247,
-        totalFolders: 3421,
-        totalFiles: 15678,
-        upcomingSchedules: 23,
-        storageUsed: 68.5,
-        userGrowth: 2.3,
-        fileGrowth: 12.5,
-        scheduleSuccess: 94.2
-      },
-      '30days': {
-        totalUsers: 1247,
-        totalFolders: 3421,
-        totalFiles: 15678,
-        upcomingSchedules: 23,
-        storageUsed: 68.5,
-        userGrowth: 8.7,
-        fileGrowth: 45.2,
-        scheduleSuccess: 94.2
-      },
-      '90days': {
-        totalUsers: 1247,
-        totalFolders: 3421,
-        totalFiles: 15678,
-        upcomingSchedules: 23,
-        storageUsed: 68.5,
-        userGrowth: 23.1,
-        fileGrowth: 156.8,
-        scheduleSuccess: 94.2
-      },
-      '1year': {
-        totalUsers: 1247,
-        totalFolders: 3421,
-        totalFiles: 15678,
-        upcomingSchedules: 23,
-        storageUsed: 68.5,
-        userGrowth: 89.4,
-        fileGrowth: 445.7,
-        scheduleSuccess: 94.2
-      }
-    }
-    return data[range] || data['30days']
+const ReportsSummaryCards = ({ summary }) => {
+  // Use dynamic data from API or provide defaults
+  const data = summary || {
+    totalUsers: { value: 0, growth: 0 },
+    totalFolders: { value: 0, growth: 0 },
+    totalFiles: { value: 0, growth: 0 },
+    upcomingSchedules: { value: 0, growth: 0 },
+    storageUsed: { value: 0, growth: 0 },
+    scheduleSuccessRate: { value: 0, growth: 0 }
   }
-
-  const data = getDataForRange(dateRange)
 
   const cards = [
     {
       title: 'Total Users',
-      value: data.totalUsers.toLocaleString(),
+      value: (data.totalUsers?.value || 0).toLocaleString(),
       icon: Users,
       color: 'bg-blue-500',
-      growth: data.userGrowth,
-      trend: 'up'
+      growth: data.totalUsers?.growth || 0,
+      trend: (data.totalUsers?.growth || 0) >= 0 ? 'up' : 'down'
     },
     {
       title: 'Total Folders',
-      value: data.totalFolders.toLocaleString(),
+      value: (data.totalFolders?.value || 0).toLocaleString(),
       icon: FolderOpen,
       color: 'bg-primary-500',
-      growth: 5.2,
-      trend: 'up'
+      growth: data.totalFolders?.growth || 0,
+      trend: (data.totalFolders?.growth || 0) >= 0 ? 'up' : 'down'
     },
     {
       title: 'Total Files',
-      value: data.totalFiles.toLocaleString(),
+      value: (data.totalFiles?.value || 0).toLocaleString(),
       icon: FileText,
       color: 'bg-green-500',
-      growth: data.fileGrowth,
-      trend: 'up'
+      growth: data.totalFiles?.growth || 0,
+      trend: (data.totalFiles?.growth || 0) >= 0 ? 'up' : 'down'
     },
     {
       title: 'Upcoming Schedules',
-      value: data.upcomingSchedules,
+      value: (data.upcomingSchedules?.value || 0).toLocaleString(),
       icon: Clock,
       color: 'bg-purple-500',
-      growth: -2.1,
-      trend: 'down'
+      growth: data.upcomingSchedules?.growth || 0,
+      trend: (data.upcomingSchedules?.growth || 0) >= 0 ? 'up' : 'down'
     },
     {
       title: 'Storage Used',
-      value: `${data.storageUsed}%`,
+      value: `${(data.storageUsed?.value || 0).toFixed(1)}%`,
       icon: HardDrive,
       color: 'bg-orange-500',
-      growth: 3.4,
-      trend: 'up'
+      growth: data.storageUsed?.growth || 0,
+      trend: (data.storageUsed?.growth || 0) >= 0 ? 'up' : 'down'
     },
     {
       title: 'Schedule Success Rate',
-      value: `${data.scheduleSuccess}%`,
+      value: `${(data.scheduleSuccessRate?.value || 0).toFixed(1)}%`,
       icon: Activity,
       color: 'bg-emerald-500',
-      growth: 1.2,
-      trend: 'up'
+      growth: data.scheduleSuccessRate?.growth || 0,
+      trend: (data.scheduleSuccessRate?.growth || 0) >= 0 ? 'up' : 'down'
     }
   ]
 

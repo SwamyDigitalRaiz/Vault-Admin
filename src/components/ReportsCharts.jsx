@@ -2,37 +2,17 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts'
 
-const ReportsCharts = ({ dateRange, reportType }) => {
-  // Mock data for charts
-  const getChartData = (range, type) => {
-    const monthlyUploads = [
-      { month: 'Jan', uploads: 1200, downloads: 800 },
-      { month: 'Feb', uploads: 1500, downloads: 950 },
-      { month: 'Mar', uploads: 1800, downloads: 1100 },
-      { month: 'Apr', uploads: 1600, downloads: 1000 },
-      { month: 'May', uploads: 2000, downloads: 1200 },
-      { month: 'Jun', uploads: 2200, downloads: 1400 }
-    ]
-
-    const fileTypeDistribution = [
-      { name: 'Documents', value: 45, color: '#3B82F6' },
-      { name: 'Images', value: 25, color: '#10B981' },
-      { name: 'Videos', value: 15, color: '#F59E0B' },
-      { name: 'Archives', value: 10, color: '#EF4444' },
-      { name: 'Other', value: 5, color: '#8B5CF6' }
-    ]
-
-    const schedulePerformance = [
-      { date: 'Week 1', successful: 45, failed: 3 },
-      { date: 'Week 2', successful: 52, failed: 2 },
-      { date: 'Week 3', successful: 48, failed: 4 },
-      { date: 'Week 4', successful: 55, failed: 1 }
-    ]
-
-    return { monthlyUploads, fileTypeDistribution, schedulePerformance }
+const ReportsCharts = ({ charts }) => {
+  // Use dynamic data from API or provide defaults
+  const chartData = charts || {
+    monthlyUploads: [],
+    fileTypeDistribution: [],
+    schedulePerformance: []
   }
 
-  const { monthlyUploads, fileTypeDistribution, schedulePerformance } = getChartData(dateRange, reportType)
+  const monthlyUploads = chartData.monthlyUploads || []
+  const fileTypeDistribution = chartData.fileTypeDistribution || []
+  const schedulePerformance = chartData.schedulePerformance || []
 
   const chartVariants = {
     hidden: { opacity: 0, y: 20 },

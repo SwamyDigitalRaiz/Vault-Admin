@@ -15,88 +15,22 @@ import {
   AlertTriangle
 } from 'lucide-react'
 
-const ReportsTable = ({ dateRange, reportType }) => {
+const ReportsTable = ({ activities = [] }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortField, setSortField] = useState('date')
   const [sortDirection, setSortDirection] = useState('desc')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Mock data
-  const reports = [
-    {
-      id: 1,
-      date: '2024-01-15',
-      user: 'John Doe',
-      action: 'File Upload',
-      target: 'project_proposal.pdf',
-      targetType: 'file',
-      status: 'success',
-      details: 'Document uploaded successfully'
-    },
-    {
-      id: 2,
-      date: '2024-01-15',
-      user: 'Sarah Wilson',
-      action: 'Schedule Created',
-      target: 'Meeting Notes',
-      targetType: 'folder',
-      status: 'success',
-      details: 'Weekly schedule created for team updates'
-    },
-    {
-      id: 3,
-      date: '2024-01-14',
-      user: 'Mike Johnson',
-      action: 'Schedule Failed',
-      target: 'client_report.xlsx',
-      targetType: 'file',
-      status: 'failed',
-      details: 'Email server timeout - retry scheduled'
-    },
-    {
-      id: 4,
-      date: '2024-01-14',
-      user: 'Emily Davis',
-      action: 'Folder Shared',
-      target: 'Client Resources',
-      targetType: 'folder',
-      status: 'success',
-      details: 'Folder shared with 3 recipients'
-    },
-    {
-      id: 5,
-      date: '2024-01-13',
-      user: 'David Brown',
-      action: 'User Blocked',
-      target: 'suspicious_user@example.com',
-      targetType: 'user',
-      status: 'warning',
-      details: 'User blocked due to suspicious activity'
-    },
-    {
-      id: 6,
-      date: '2024-01-13',
-      user: 'Lisa Garcia',
-      action: 'Bulk Upload',
-      target: 'Marketing Assets',
-      targetType: 'folder',
-      status: 'success',
-      details: '15 files uploaded successfully'
-    }
-  ]
+  // Use dynamic activities from API
+  const reports = activities || []
 
   const filteredReports = reports.filter(report => {
-    const matchesSearch = report.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.target.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.details.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (report.user || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (report.action || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (report.target || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (report.details || '').toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesType = reportType === 'all' || 
-                       (reportType === 'users' && report.targetType === 'user') ||
-                       (reportType === 'files' && (report.targetType === 'file' || report.targetType === 'folder')) ||
-                       (reportType === 'schedules' && report.action.toLowerCase().includes('schedule'))
-    
-    return matchesSearch && matchesType
+    return matchesSearch
   })
 
   const sortedReports = [...filteredReports].sort((a, b) => {
@@ -353,7 +287,7 @@ const ReportsTable = ({ dateRange, reportType }) => {
       <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {sortedReports.length} of {reports.length} reports
+            Showing {sortedReports.length} of {reports.length} {reports.length === 1 ? 'report' : 'reports'}
           </div>
           <div className="flex items-center space-x-3">
             <button className="text-sm text-primary-500 hover:text-primary-600 font-medium">

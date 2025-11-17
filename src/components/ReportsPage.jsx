@@ -1,12 +1,38 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import ReportsSummaryCards from './ReportsSummaryCards'
 import ReportsCharts from './ReportsCharts'
 import ReportsTable from './ReportsTable'
+import apiService from '../services/api'
 
 const ReportsPage = () => {
   const [dateRange, setDateRange] = useState('30days')
   const [reportType, setReportType] = useState('all')
+  const [reportsData, setReportsData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchReportsData()
+  }, [dateRange, reportType])
+
+  const fetchReportsData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await apiService.getReports({ dateRange, reportType })
+      if (response && response.data) {
+        setReportsData(response.data)
+      } else {
+        setReportsData(response)
+      }
+    } catch (err) {
+      console.error('Error fetching reports:', err)
+      setError(err.message || 'Failed to load reports data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const pageVariants = {
     hidden: { opacity: 0 },
@@ -86,34 +112,57 @@ const ReportsPage = () => {
             </div>
           </motion.div>
 
-          {/* Summary Cards */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-8"
-          >
-            <ReportsSummaryCards dateRange={dateRange} />
-          </motion.div>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">Loading reports...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+                <button
+                  onClick={fetchReportsData}
+                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : reportsData ? (
+            <>
+              {/* Summary Cards */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="mb-8"
+              >
+                <ReportsSummaryCards summary={reportsData.summary} />
+              </motion.div>
 
-          {/* Charts Section */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mb-8"
-          >
-            <ReportsCharts dateRange={dateRange} reportType={reportType} />
-          </motion.div>
+              {/* Charts Section */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="mb-8"
+              >
+                <ReportsCharts charts={reportsData.charts} />
+              </motion.div>
 
-          {/* Reports Table */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <ReportsTable dateRange={dateRange} reportType={reportType} />
-          </motion.div>
+              {/* Reports Table */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <ReportsTable activities={reportsData.activities} />
+              </motion.div>
+            </>
+          ) : null}
         </div>
       </main>
     </motion.div>

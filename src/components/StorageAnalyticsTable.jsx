@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Search, 
-  Filter, 
   Download, 
   HardDrive, 
   User, 
@@ -14,80 +13,20 @@ import {
   TrendingDown
 } from 'lucide-react'
 
-const StorageAnalyticsTable = ({ dateRange, viewType }) => {
+const StorageAnalyticsTable = ({ entries = [], viewType }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortField, setSortField] = useState('storage')
   const [sortDirection, setSortDirection] = useState('desc')
 
-  // Mock data
-  const storageData = [
-    {
-      id: 1,
-      name: 'John Doe',
-      type: 'user',
-      storage: 2.5,
-      files: 150,
-      folders: 12,
-      lastActivity: '2024-01-15',
-      growth: 12.5
-    },
-    {
-      id: 2,
-      name: 'Project Documents',
-      type: 'folder',
-      storage: 1.8,
-      files: 89,
-      folders: 0,
-      lastActivity: '2024-01-14',
-      growth: 8.2
-    },
-    {
-      id: 3,
-      name: 'Sarah Wilson',
-      type: 'user',
-      storage: 1.6,
-      files: 120,
-      folders: 8,
-      lastActivity: '2024-01-15',
-      growth: -2.1
-    },
-    {
-      id: 4,
-      name: 'Marketing Assets',
-      type: 'folder',
-      storage: 3.2,
-      files: 200,
-      folders: 0,
-      lastActivity: '2024-01-13',
-      growth: 15.8
-    },
-    {
-      id: 5,
-      name: 'Mike Johnson',
-      type: 'user',
-      storage: 1.2,
-      files: 80,
-      folders: 5,
-      lastActivity: '2024-01-12',
-      growth: 5.4
-    },
-    {
-      id: 6,
-      name: 'Client Resources',
-      type: 'folder',
-      storage: 2.8,
-      files: 180,
-      folders: 0,
-      lastActivity: '2024-01-15',
-      growth: 22.1
-    }
-  ]
+  const storageData = entries || []
 
   const filteredData = storageData.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const name = (item.name || '').toLowerCase()
+    const matchesSearch = name.includes(searchTerm.toLowerCase())
     const matchesType = viewType === 'overview' || 
                        (viewType === 'users' && item.type === 'user') ||
-                       (viewType === 'folders' && item.type === 'folder')
+                       (viewType === 'folders' && item.type === 'folder') ||
+                       (viewType === 'files' && item.type === 'folder')
     return matchesSearch && matchesType
   })
 
@@ -220,9 +159,15 @@ const StorageAnalyticsTable = ({ dateRange, viewType }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedData.map((item, index) => (
+            {sortedData.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                  No storage analytics data available for the selected filters.
+                </td>
+              </tr>
+            ) : sortedData.map((item, index) => (
               <motion.tr
-                key={item.id}
+                key={item.id || index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -237,10 +182,10 @@ const StorageAnalyticsTable = ({ dateRange, viewType }) => {
                     {getTypeIcon(item.type)}
                     <div className="ml-3">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {item.name}
+                        {item.name || 'Unknown'}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        ID: {item.id}
+                        ID: {item.id || 'N/A'}
                       </div>
                     </div>
                   </div>
@@ -257,25 +202,25 @@ const StorageAnalyticsTable = ({ dateRange, viewType }) => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm text-gray-900 dark:text-white">
                     <HardDrive className="h-4 w-4 mr-2 text-gray-500" />
-                    {item.storage} GB
+                    {Number(item.storage ?? 0).toFixed(2)} GB
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {item.files}
+                  {item.files ?? 0}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                  {item.folders}
+                  {item.folders ?? 0}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className={`flex items-center text-sm font-medium ${getGrowthColor(item.growth)}`}>
                     {getGrowthIcon(item.growth)}
                     <span className="ml-1">
-                      {item.growth > 0 ? '+' : ''}{item.growth}%
+                      {item.growth > 0 ? '+' : ''}{item.growth || 0}%
                     </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                  {item.lastActivity}
+                  {item.lastActivity || 'N/A'}
                 </td>
               </motion.tr>
             ))}

@@ -1,39 +1,40 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts'
 
-const StorageAnalyticsCharts = ({ dateRange, viewType }) => {
-  // Mock data for storage analytics
-  const getChartData = (range, type) => {
-    const storageUsage = [
-      { month: 'Jan', used: 45, available: 55, total: 100 },
-      { month: 'Feb', used: 52, available: 48, total: 100 },
-      { month: 'Mar', used: 48, available: 52, total: 100 },
-      { month: 'Apr', used: 61, available: 39, total: 100 },
-      { month: 'May', used: 58, available: 42, total: 100 },
-      { month: 'Jun', used: 68, available: 32, total: 100 }
-    ]
+const StorageAnalyticsCharts = ({ charts }) => {
+  const emptyStorageUsage = [
+    { month: 'Jan', used: 0, available: 0, total: 0 },
+    { month: 'Feb', used: 0, available: 0, total: 0 },
+    { month: 'Mar', used: 0, available: 0, total: 0 },
+    { month: 'Apr', used: 0, available: 0, total: 0 },
+    { month: 'May', used: 0, available: 0, total: 0 },
+    { month: 'Jun', used: 0, available: 0, total: 0 }
+  ]
 
-    const fileTypeStorage = [
-      { name: 'Documents', value: 35, color: '#3B82F6' },
-      { name: 'Images', value: 25, color: '#10B981' },
-      { name: 'Videos', value: 20, color: '#F59E0B' },
-      { name: 'Archives', value: 15, color: '#EF4444' },
-      { name: 'Other', value: 5, color: '#8B5CF6' }
-    ]
+  const emptyDistribution = [
+    { name: 'Documents', value: 0, color: '#3B82F6' },
+    { name: 'Images', value: 0, color: '#10B981' },
+    { name: 'Videos', value: 0, color: '#F59E0B' },
+    { name: 'Archives', value: 0, color: '#EF4444' },
+    { name: 'Other', value: 0, color: '#8B5CF6' }
+  ]
 
-    const userStorage = [
-      { user: 'John Doe', storage: 2.5, files: 150 },
-      { user: 'Sarah Wilson', storage: 1.8, files: 120 },
-      { user: 'Mike Johnson', storage: 3.2, files: 200 },
-      { user: 'Emily Davis', storage: 1.2, files: 80 },
-      { user: 'David Brown', storage: 2.8, files: 180 }
-    ]
+  const storageUsage = charts?.storageUsage && charts.storageUsage.length > 0
+    ? charts.storageUsage
+    : emptyStorageUsage
 
-    return { storageUsage, fileTypeStorage, userStorage }
-  }
+  const fileTypeStorage = charts?.fileTypeDistribution && charts.fileTypeDistribution.length > 0
+    ? charts.fileTypeDistribution
+    : emptyDistribution
 
-  const { storageUsage, fileTypeStorage, userStorage } = getChartData(dateRange, viewType)
+  const userStorage = charts?.topUsers && charts.topUsers.length > 0
+    ? charts.topUsers
+    : [
+        { user: 'N/A', storage: 0, files: 0 },
+        { user: 'N/A', storage: 0, files: 0 },
+        { user: 'N/A', storage: 0, files: 0 }
+      ]
 
   const chartVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -130,7 +131,7 @@ const StorageAnalyticsCharts = ({ dateRange, viewType }) => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, value }) => `${name} ${value}%`}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"

@@ -304,6 +304,20 @@ class ApiService {
     })
   }
 
+  async getReports(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/reports${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  async getStorageAnalytics(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/admin/storage/analytics${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
   async getAnalytics(params = {}) {
     const queryString = new URLSearchParams(params).toString()
     return this.request(`/admin/analytics${queryString ? `?${queryString}` : ''}`, {

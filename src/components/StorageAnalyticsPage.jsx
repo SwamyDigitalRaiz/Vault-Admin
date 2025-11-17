@@ -1,11 +1,15 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import StorageAnalyticsCharts from './StorageAnalyticsCharts'
 import StorageAnalyticsTable from './StorageAnalyticsTable'
+import apiService from '../services/api'
 
 const StorageAnalyticsPage = () => {
   const [dateRange, setDateRange] = useState('30days')
   const [viewType, setViewType] = useState('overview')
+  const [analyticsData, setAnalyticsData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const pageVariants = {
     hidden: { opacity: 0 },
@@ -15,6 +19,28 @@ const StorageAnalyticsPage = () => {
         duration: 0.5,
         staggerChildren: 0.1
       }
+    }
+  }
+
+  useEffect(() => {
+    fetchStorageAnalytics()
+  }, [dateRange])
+
+  const fetchStorageAnalytics = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await apiService.getStorageAnalytics({ dateRange })
+      if (response && response.data) {
+        setAnalyticsData(response.data)
+      } else {
+        setAnalyticsData(response)
+      }
+    } catch (err) {
+      console.error('Error fetching storage analytics:', err)
+      setError(err.message || 'Failed to load storage analytics')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -85,24 +111,50 @@ const StorageAnalyticsPage = () => {
             </div>
           </motion.div>
 
-          {/* Storage Analytics Charts */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-8"
-          >
-            <StorageAnalyticsCharts dateRange={dateRange} viewType={viewType} />
-          </motion.div>
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                <p className="text-gray-600 dark:text-gray-400">Loading storage analytics...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+                <button
+                  onClick={fetchStorageAnalytics}
+                  className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : analyticsData ? (
+            <>
+              {/* Storage Analytics Charts */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="mb-8"
+              >
+                <StorageAnalyticsCharts charts={analyticsData.charts} />
+              </motion.div>
 
-          {/* Storage Analytics Table */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <StorageAnalyticsTable dateRange={dateRange} viewType={viewType} />
-          </motion.div>
+              {/* Storage Analytics Table */}
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <StorageAnalyticsTable
+                  entries={analyticsData.table?.entries || []}
+                  viewType={viewType}
+                />
+              </motion.div>
+            </>
+          ) : null}
         </div>
       </main>
     </motion.div>
