@@ -3,6 +3,170 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Bell, User, LogOut, UserCircle, ChevronDown } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { useAuth } from '../contexts/AuthContext'
+import apiService from '../services/api'
+
+// Notification Bell Component
+const NotificationBell = ({ onRouteChange }) => {
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isOpen, setIsOpen] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(false)
+  const bellRef = useRef(null)
+
+  useEffect(() => {
+    fetchUnreadCount()
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await apiService.getUnreadCount()
+      if (response.success) {
+        setUnreadCount(response.data.unreadCount || 0)
+      }
+    } catch (err) {
+      console.error('Error fetching unread count:', err)
+    }
+  }
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true)
+      const response = await apiService.getNotifications({ limit: 5, status: 'unread' })
+      if (response.success) {
+        setNotifications(response.data.notifications || [])
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications()
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (bellRef.current && !bellRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await apiService.markNotificationAsRead(id)
+      setNotifications(prev => prev.filter(n => n.id !== id))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (err) {
+      console.error('Error marking notification as read:', err)
+    }
+  }
+
+  return (
+    <div className="relative" ref={bellRef}>
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white font-semibold">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </motion.button>
+
+      {/* Notification Dropdown */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto"
+          >
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Notifications
+                </h3>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await apiService.markAllNotificationsAsRead()
+                        setNotifications([])
+                        setUnreadCount(0)
+                      } catch (err) {
+                        console.error('Error marking all as read:', err)
+                      }
+                    }}
+                    className="text-sm text-primary-500 hover:text-primary-600"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="p-2">
+              {loading ? (
+                <div className="p-4 text-center text-gray-500">Loading...</div>
+              ) : notifications.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">No new notifications</div>
+              ) : (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg cursor-pointer"
+                    onClick={() => handleMarkAsRead(notification.id)}
+                  >
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {notification.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      {new Date(notification.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  if (onRouteChange) {
+                    onRouteChange('/notifications')
+                  }
+                  setIsOpen(false)
+                }}
+                className="block w-full text-center text-sm text-primary-500 hover:text-primary-600 py-2"
+              >
+                View all notifications
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 const TopBar = ({ onRouteChange }) => {
   const { isDark, toggleTheme } = useTheme()
@@ -65,14 +229,7 @@ const TopBar = ({ onRouteChange }) => {
         {/* Right Side Actions */}
         <div className="flex items-center space-x-1 sm:space-x-4 flex-shrink-0">
           {/* Notifications */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 dark:text-gray-400" />
-            <span className="absolute -top-1 -right-1 h-2 w-2 sm:h-3 sm:w-3 bg-red-500 rounded-full"></span>
-          </motion.button>
+          <NotificationBell onRouteChange={onRouteChange} />
 
           {/* Admin Profile with Dropdown */}
           <div className="relative" ref={profileRef}>

@@ -57,6 +57,46 @@ class ApiService {
       const contentType = response.headers.get('content-type')
       let data
       
+      // Handle rate limiting (429) - may return JSON or HTML/text
+      if (response.status === 429) {
+        let errorMessage = 'Too many requests from this IP, please try again later.'
+        
+        // Read response as text first (works for both JSON and HTML)
+        try {
+          const text = await response.text()
+          
+          // Try to parse as JSON if content-type suggests it
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const jsonData = JSON.parse(text)
+              errorMessage = jsonData.message || errorMessage
+            } catch (e) {
+              // Not valid JSON, extract from text
+              if (text.includes('Too many requests')) {
+                const match = text.match(/Too many requests[^<]*/i)
+                if (match) {
+                  errorMessage = match[0].trim()
+                }
+              }
+            }
+          } else {
+            // Extract message from HTML/text
+            if (text.includes('Too many requests')) {
+              const match = text.match(/Too many requests[^<]*/i)
+              if (match) {
+                errorMessage = match[0].trim()
+              }
+            }
+          }
+        } catch (textError) {
+          // If reading fails, use default message
+          console.error('🌐 [API Service] Could not read 429 response:', textError)
+        }
+        
+        console.error('🌐 [API Service] Rate limit exceeded (429):', errorMessage)
+        throw new Error(errorMessage)
+      }
+      
       if (contentType && contentType.includes('application/json')) {
         data = await response.json()
       } else {
@@ -596,6 +636,128 @@ class ApiService {
   async getSupportStats() {
     return this.request('/admin/support/stats', {
       method: 'GET',
+    })
+  }
+
+  // =============================================================================
+  // NOTIFICATION ENDPOINTS
+  // =============================================================================
+
+  /**
+   * Get notifications for the authenticated user
+   * @param {Object} params - Query parameters (page, limit, status, type, category, dateRange)
+   * @returns {Promise} Notification list with pagination
+   */
+  async getNotifications(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/notifications${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  /**
+   * Get a single notification by ID
+   * @param {String} notificationId - Notification ID
+   * @returns {Promise} Notification object
+   */
+  async getNotificationById(notificationId) {
+    return this.request(`/notifications/${notificationId}`, {
+      method: 'GET',
+    })
+  }
+
+  /**
+   * Get unread notification count
+   * @returns {Promise} Unread count
+   */
+  async getUnreadCount() {
+    return this.request('/notifications/unread-count', {
+      method: 'GET',
+    })
+  }
+
+  /**
+   * Create a new notification (admin only)
+   * @param {Object} notificationData - Notification data
+   * @returns {Promise} Created notification(s)
+   */
+  async createNotification(notificationData) {
+    return this.request('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(notificationData),
+    })
+  }
+
+  /**
+   * Mark notification(s) as read
+   * @param {String|Array} idOrIds - Single notification ID or array of IDs
+   * @returns {Promise} Updated notification(s)
+   */
+  async markNotificationAsRead(idOrIds) {
+    if (Array.isArray(idOrIds)) {
+      return this.request('/notifications/read', {
+        method: 'PATCH',
+        body: JSON.stringify({ ids: idOrIds }),
+      })
+    } else {
+      return this.request(`/notifications/${idOrIds}/read`, {
+        method: 'PATCH',
+      })
+    }
+  }
+
+  /**
+   * Mark all notifications as read
+   * @returns {Promise} Count of marked notifications
+   */
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/read-all', {
+      method: 'PATCH',
+    })
+  }
+
+  /**
+   * Delete notification(s)
+   * @param {String|Array} idOrIds - Single notification ID or array of IDs
+   * @returns {Promise} Deletion result
+   */
+  async deleteNotification(idOrIds) {
+    if (Array.isArray(idOrIds)) {
+      return this.request('/notifications', {
+        method: 'DELETE',
+        body: JSON.stringify({ ids: idOrIds }),
+      })
+    } else {
+      return this.request(`/notifications/${idOrIds}`, {
+        method: 'DELETE',
+      })
+    }
+  }
+
+  /**
+   * Get all notifications sent by the admin (admin only)
+   * @param {Object} params - Query parameters (page, limit, type, category, dateRange)
+   * @returns {Promise} Admin sent notifications list with pagination
+   */
+  async getAdminSentNotifications(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.request(`/notifications/admin/sent${queryString ? `?${queryString}` : ''}`, {
+      method: 'GET',
+    })
+  }
+
+  /**
+   * Delete all notifications sent by the admin (admin only)
+   * @param {Array} notificationIds - Optional array of notification IDs to delete (if not provided, deletes all)
+   * @returns {Promise} Deletion result
+   */
+  async deleteAllAdminSentNotifications(notificationIds = null) {
+    const body = notificationIds && notificationIds.length > 0 
+      ? { notificationIds } 
+      : {}
+    return this.request('/notifications/admin/sent', {
+      method: 'DELETE',
+      body: JSON.stringify(body),
     })
   }
 }

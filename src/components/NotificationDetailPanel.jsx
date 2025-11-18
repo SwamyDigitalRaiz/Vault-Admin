@@ -17,6 +17,9 @@ import {
 } from 'lucide-react'
 
 const NotificationDetailPanel = ({ notification, onClose }) => {
+  // Check if this is an admin sent notification
+  const isAdminSent = notification.recipientCount !== undefined
+
   const getTypeIcon = (type) => {
     switch (type) {
       case 'success':
@@ -67,44 +70,53 @@ const NotificationDetailPanel = ({ notification, onClose }) => {
     console.log('Navigate to:', notification.relatedItem)
   }
 
+  if (!notification) return null
+
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       <motion.div
+        key="notification-detail-panel"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 20 }}
+          transition={{ duration: 0.2 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                {getTypeIcon(notification.type)}
+              <div className="flex items-center space-x-4">
+                <div className={`p-3 rounded-xl ${
+                  notification.type === 'success' ? 'bg-green-100 dark:bg-green-900/20' :
+                  notification.type === 'error' ? 'bg-red-100 dark:bg-red-900/20' :
+                  notification.type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+                  'bg-blue-100 dark:bg-blue-900/20'
+                }`}>
+                  {getTypeIcon(notification.type)}
+                </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {notification.title}
                   </h2>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(notification.type)}`}>
-                      {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
-                    </span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                      {notification.category}
+                  <div className="flex items-center space-x-2 mt-2">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getTypeColor(notification.type)}`}>
+                      {notification.type ? notification.type.charAt(0).toUpperCase() + notification.type.slice(1) : 'Info'}
                     </span>
                   </div>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <X className="h-5 w-5 text-gray-500" />
               </button>
@@ -165,49 +177,142 @@ const NotificationDetailPanel = ({ notification, onClose }) => {
             )}
 
             {/* Metadata */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Timestamp
-                </h3>
-                <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                  <Clock className="h-4 w-4" />
-                  <span>{notification.timestamp}</span>
+            {isAdminSent ? (
+              <>
+                {/* Admin Sent Notification Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Total Users
+                      </h3>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                      {notification.recipientCount || 0}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Read
+                      </h3>
+                    </div>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+                      {notification.readCount || 0}
+                    </p>
+                  </div>
+                  
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Unread
+                      </h3>
+                    </div>
+                    <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
+                      {notification.unreadCount || 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Users List */}
+                {notification.recipients && notification.recipients.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Users ({notification.recipients.length})
+                    </h3>
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {notification.recipients.map((recipient, index) => (
+                        <div
+                          key={recipient.id || index}
+                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              recipient.isRead 
+                                ? 'bg-green-100 dark:bg-green-900/20' 
+                                : 'bg-yellow-100 dark:bg-yellow-900/20'
+                            }`}>
+                              <User className={`h-4 w-4 ${
+                                recipient.isRead 
+                                  ? 'text-green-600 dark:text-green-400' 
+                                  : 'text-yellow-600 dark:text-yellow-400'
+                              }`} />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {recipient.name || 'Unknown User'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {recipient.email || 'No email'}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            recipient.isRead
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          }`}>
+                            {recipient.isRead ? 'Read' : 'Unread'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Timestamp */}
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Sent At
+                    </h3>
+                    <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                      <Clock className="h-4 w-4" />
+                      <span>{notification.timestamp}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Timestamp
+                  </h3>
+                  <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                    <Clock className="h-4 w-4" />
+                    <span>{notification.timestamp}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    User
+                  </h3>
+                  <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                    <User className="h-4 w-4" />
+                    <span>{notification.user || 'System'}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Status
+                  </h3>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    notification.status === 'unread' || notification.isRead === false
+                      ? 'bg-primary-100 text-primary-800 dark:bg-primary-900/20 dark:text-primary-400'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                  }`}>
+                    {notification.status ? notification.status.charAt(0).toUpperCase() + notification.status.slice(1) : (notification.isRead ? 'Read' : 'Unread')}
+                  </span>
                 </div>
               </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  User
-                </h3>
-                <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-                  <User className="h-4 w-4" />
-                  <span>{notification.user}</span>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Status
-                </h3>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  notification.status === 'unread' 
-                    ? 'bg-primary-100 text-primary-800 dark:bg-primary-900/20 dark:text-primary-400'
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                }`}>
-                  {notification.status.charAt(0).toUpperCase() + notification.status.slice(1)}
-                </span>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Category
-                </h3>
-                <span className="text-gray-600 dark:text-gray-400 capitalize">
-                  {notification.category}
-                </span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Footer */}

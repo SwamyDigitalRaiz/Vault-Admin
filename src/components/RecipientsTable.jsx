@@ -40,10 +40,8 @@ const RecipientsTable = ({ onRecipientSelect }) => {
       
       if (response.success && response.recipients) {
         setRecipients(response.recipients)
-        toast.success(`Loaded ${response.recipients.length} recipients`)
       } else {
         setRecipients([])
-        toast.warning('No recipients found')
       }
     } catch (error) {
       console.error('❌ Error fetching recipients:', error)
