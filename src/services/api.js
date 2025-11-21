@@ -229,6 +229,47 @@ class ApiService {
     })
   }
 
+  // Legal Content APIs
+  async getTermsOfService() {
+    return this.request('/admin/legal/terms', {
+      method: 'GET',
+    })
+  }
+
+  async getPrivacyPolicy() {
+    return this.request('/admin/legal/privacy', {
+      method: 'GET',
+    })
+  }
+
+  async updateTermsOfService(data) {
+    return this.request('/admin/legal/terms', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updatePrivacyPolicy(data) {
+    return this.request('/admin/legal/privacy', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // Contact Info APIs
+  async getContactInfo() {
+    return this.request('/admin/contact', {
+      method: 'GET',
+    })
+  }
+
+  async updateContactInfo(data) {
+    return this.request('/admin/contact', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
   async getUserById(userId) {
     return this.request(`/admin/users/${userId}`, {
       method: 'GET',
