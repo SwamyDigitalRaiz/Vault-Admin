@@ -5,7 +5,7 @@
 
 const config = {
   // API Base URL - can be overridden by environment variables
-  API_BASE_URL:  'http://54.237.114.155/api',
+  API_BASE_URL:  'http://54.237.114.155:3000/api',
   
   // Application settings
   APP_NAME: import.meta.env.VITE_APP_NAME || 'Vault Admin',
