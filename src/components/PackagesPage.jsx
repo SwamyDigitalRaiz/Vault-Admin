@@ -348,15 +348,18 @@ const PackagesPage = () => {
                     >
                       <Edit className="h-4 w-4" />
                     </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleDeletePackage(pkg.id || pkg._id)}
-                      disabled={deletingPackageId === (pkg.id || pkg._id)}
-                      className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </motion.button>
+                    {/* Hide delete button for free packages (price === 0) */}
+                    {pkg.price !== 0 && (
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleDeletePackage(pkg.id || pkg._id)}
+                        disabled={deletingPackageId === (pkg.id || pkg._id)}
+                        className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </motion.button>
+                    )}
                   </div>
                 </div>
 
@@ -518,6 +521,7 @@ const PackagesPage = () => {
               setIsDetailPanelOpen(false)
               setViewingPackage(null)
             }}
+            isFreePackage={viewingPackage?.price === 0}
           />
         )}
       </AnimatePresence>

@@ -15,8 +15,11 @@ import {
   FileText
 } from 'lucide-react'
 
-const PackageDetailPanel = ({ package: packageData, onClose, onEdit, onDelete }) => {
+const PackageDetailPanel = ({ package: packageData, onClose, onEdit, onDelete, isFreePackage }) => {
   if (!packageData) return null
+  
+  // Check if package is free (price === 0)
+  const isFree = isFreePackage !== undefined ? isFreePackage : (packageData.price === 0)
 
   const getBillingCycleColor = (cycle) => {
     switch (cycle) {
@@ -90,7 +93,7 @@ const PackageDetailPanel = ({ package: packageData, onClose, onEdit, onDelete })
         </div>
 
         {/* Action Buttons */}
-        <div className="flex space-x-2">
+        <div className={`flex space-x-2 ${isFree ? '' : ''}`}>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -98,27 +101,30 @@ const PackageDetailPanel = ({ package: packageData, onClose, onEdit, onDelete })
               onEdit(packageData)
               onClose()
             }}
-            className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+            className={`flex items-center justify-center space-x-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors ${isFree ? 'flex-1' : 'flex-1'}`}
           >
             <Edit className="h-4 w-4" />
             <span>Edit</span>
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              if (window.confirm('Are you sure you want to delete this package?')) {
-                if (onDelete) {
-                  onDelete(packageData._id || packageData.id)
+          {/* Hide delete button for free packages */}
+          {!isFree && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to delete this package?')) {
+                  if (onDelete) {
+                    onDelete(packageData._id || packageData.id)
+                  }
+                  onClose()
                 }
-                onClose()
-              }
-            }}
-            className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span>Delete</span>
-          </motion.button>
+              }}
+              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Delete</span>
+            </motion.button>
+          )}
         </div>
       </div>
 
