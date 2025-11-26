@@ -7,9 +7,7 @@ const config = {
   // API Base URL - dynamically set based on environment
   // In development: always uses localhost:6010 (ignores VITE_API_BASE_URL)
   // In production: uses VITE_API_BASE_URL if set, otherwise uses production URL
-  API_BASE_URL: import.meta.env.DEV 
-    ? 'http://localhost:6010/api'  // Always use localhost:6010 in development
-    : (import.meta.env.VITE_API_BASE_URL || 'https://api.vaultchain.app/api'),  // Production: use env var or default domain
+  API_BASE_URL: 'http://54.237.114.155:3000/api',  // Production: use env var or default
   
   // Application settings
   APP_NAME: import.meta.env.VITE_APP_NAME || 'Vault Admin',
